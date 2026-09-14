@@ -1,0 +1,413 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ПРУФ — допуск к коду, который нельзя списать</title>
+<meta name="description" content="ПРУФ — платформа верификации инженерных навыков: мутации кода кандидата, 15-минутная сессия защиты и протокол понимания без прокторинга и без LLM.">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<header class="nav">
+  <a class="brand" href="index.html"><span class="brand__slash">/</span> ПРУФ</a>
+  <nav class="nav__links">
+    <a href="index.html">Главная</a>
+    <a href="studio.html">Проверка кода</a>
+    <a href="session.html?demo=1">Сессия защиты</a>
+    <a href="employer.html">Кабинет работодателя</a>
+    <a href="candidate.html">Кабинет кандидата</a>
+  </nav>
+  <div class="nav__actions">
+    <span class="enginebar" data-engine-badge></span>
+    <button class="btn btn--sm" type="button" data-modal-open="lead">Запросить пилот</button>
+  </div>
+</header>
+
+<main>
+
+<section class="hero">
+  <div class="hero__text">
+    <p class="hero__eyebrow reveal">Верификация инженерных навыков · без прокторинга · без LLM</p>
+    <h1 class="hero__title reveal" data-delay="80">Зелёные тесты больше не доказывают, что человек понимает код</h1>
+    <p class="hero__lead reveal" data-delay="160">ПРУФ берёт решение кандидата, разбирает его в AST, строит 9–15 мутаций именно этого кода, прогоняет тесты в изоляторе и ведёт 15-минутную сессию защиты. На выходе — протокол понимания, а не галочка «тесты прошли».</p>
+    <div class="row row--wrap reveal" data-delay="240">
+      <a class="btn btn--wide" href="studio.html">Проверить свой код</a>
+      <a class="btn btn--ghost" href="session.html?demo=1">Смотреть сессию защиты</a>
+      <a class="btn btn--quiet" href="employer.html">Кабинет работодателя</a>
+    </div>
+    <p class="hero__note reveal" data-delay="320">Всё считается локально: ни камеры, ни биометрии, ни внешних моделей. Работает в закрытом контуре без интернета.</p>
+  </div>
+  <div class="scene">
+    <canvas class="scene__canvas" id="scene" data-scene width="720" height="620" aria-hidden="true"></canvas>
+    <div class="scene__fallback" aria-hidden="true">
+      <div class="scene__cube">
+        <span class="f1"></span><span class="f2"></span><span class="f3"></span>
+        <span class="f4"></span><span class="f5"></span><span class="f6"></span>
+      </div>
+    </div>
+    <div class="scene__chip scene__chip--a">M03 · &lt; 3 → &lt;= 3 · тесты поймали</div>
+    <div class="scene__chip scene__chip--b">M11 · &gt; → &gt;= · прошла незамеченной</div>
+    <div class="scene__chip scene__chip--c">Контроль кода · 77 %</div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="kpi reveal">
+    <div class="kpi__item">
+      <div class="kpi__value"><span data-count="38" data-suffix=" %">38 %</span></div>
+      <div class="kpi__label">кандидатов с признаками ИИ-подсказки в отборе</div>
+    </div>
+    <div class="kpi__item">
+      <div class="kpi__value"><span data-count="15" data-suffix=" мин">15 мин</span></div>
+      <div class="kpi__label">одна сессия защиты вместо 2–4 часов senior-инженера</div>
+    </div>
+    <div class="kpi__item">
+      <div class="kpi__value"><span data-count="1500" data-suffix=" ₽">1 500 ₽</span></div>
+      <div class="kpi__label">цена верифицированного кандидата</div>
+    </div>
+    <div class="kpi__item">
+      <div class="kpi__value"><span data-count="803" data-suffix="">803</span></div>
+      <div class="kpi__label">сессии в год до безубыточности — это 3–5 компаний</div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="how">
+  <h2 class="section__title reveal">Как это работает</h2>
+  <p class="section__lead reveal" data-delay="60">Четыре шага, каждый из них детерминирован и воспроизводим — любой спор разбирается пересчётом того же набора мутаций.</p>
+  <div class="grid grid--4">
+    <article class="card card--tilt reveal" data-delay="0">
+      <span class="card__step">01</span>
+      <h3>Прислал решение</h3>
+      <p>Тестовое задание, учебный проект или кусок рабочего кода вместе с своими тестами.</p>
+    </article>
+    <article class="card card--tilt reveal" data-delay="90">
+      <span class="card__step">02</span>
+      <h3>AST и мутации</h3>
+      <p>18 операторов по восьми навыкам строят правки с проверкой компиляции и без дублей.</p>
+    </article>
+    <article class="card card--tilt reveal" data-delay="180">
+      <span class="card__step">03</span>
+      <h3>Тесты в изоляторе</h3>
+      <p>Отдельный процесс без сети, с лимитами по CPU, памяти и размеру файлов.</p>
+    </article>
+    <article class="card card--tilt reveal" data-delay="270">
+      <span class="card__step">04</span>
+      <h3>Сессия и протокол</h3>
+      <p>Вопросы из конкретных строк живут 15 минут. На выходе — карта пробелов и PDF.</p>
+    </article>
+  </div>
+</section>
+
+<section class="section" id="try">
+  <div class="grid grid--sidebar">
+    <div class="reveal">
+      <h2 class="section__title">Попробуйте на примере</h2>
+      <p class="section__lead">Ниже — реальный фрагмент решения. Нажмите «Сломать» — движок разберёт код и покажет, какие правки можно внести и что каждая из них сломает.</p>
+      <pre class="editor editor--static"><code id="try-code">def parse_orders(raw):
+    orders = []
+    for line in raw.strip().splitlines():
+        parts = line.split(";")
+        if len(parts) &lt; 3:
+            continue
+        name = parts[0].strip()
+        try:
+            qty = int(parts[1])
+            price = float(parts[2])
+        except ValueError:
+            raise ValueError("плохая строка")
+        orders.append({"name": name, "qty": qty, "price": price})
+    return orders</code></pre>
+      <div class="row row--wrap">
+        <button class="btn" type="button" id="try-break">Сломать</button>
+        <a class="btn btn--ghost" href="studio.html">Открыть в студии и писать свой код</a>
+      </div>
+      <p class="muted" id="try-note">Запустите <code>python3 -m engine.cli serve</code> — и мутации будут строиться на живом движке для любого вашего кода.</p>
+    </div>
+    <div class="card card--accent reveal" data-delay="120">
+      <h3>Мутации этого решения</h3>
+      <div id="try-mutations" class="mutlist">
+        <p class="muted">Нажмите «Сломать», чтобы увидеть список правок.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="audience">
+  <h2 class="section__title reveal">Три аудитории</h2>
+  <div class="grid grid--3">
+    <article class="card card--tilt reveal">
+      <h3>HR и рекрутер</h3>
+      <p>Отправьте ссылку кандидату и получите протокол до технического интервью. Фильтр снимает до 70 % бесполезных собеседований.</p>
+      <a class="btn btn--sm btn--quiet" href="employer.html">Открыть кабинет</a>
+    </article>
+    <article class="card card--tilt reveal" data-delay="90">
+      <h3>Тимлид</h3>
+      <p>Смотрите не «задача сдана», а карту навыков: границы, ошибки, строки, коллекции — и цитаты из кода кандидата.</p>
+      <a class="btn btn--sm btn--quiet" href="studio.html">Построить проверку</a>
+    </article>
+    <article class="card card--tilt reveal" data-delay="180">
+      <h3>Кандидат</h3>
+      <p>15 минут без камеры. Протокол остаётся у вас и переиспользуется в других компаниях — одна проверка бесплатно.</p>
+      <a class="btn btn--sm btn--quiet" href="candidate.html">Мой протокол</a>
+    </article>
+  </div>
+</section>
+
+<section class="section" id="protocol">
+  <div class="grid grid--sidebar">
+    <div class="card reveal">
+      <h2>Протокол понимания</h2>
+      <p class="muted">Пример из реального прогона движка: 13 мутаций, 8 поймано тестами, 5 прошли незамеченными.</p>
+      <table class="table">
+        <thead><tr><th>Навык</th><th>Вопросы</th><th>Вердикт</th></tr></thead>
+        <tbody>
+          <tr><td>Границы и индексы</td><td>4</td><td><span class="badge badge--ok">Контролирует</span></td></tr>
+          <tr><td>Арифметика и накопление</td><td>3</td><td><span class="badge badge--ok">Контролирует</span></td></tr>
+          <tr><td>Работа со строками</td><td>3</td><td><span class="badge badge--bad">Не контролирует</span></td></tr>
+          <tr><td>Обработка ошибок</td><td>2</td><td><span class="badge badge--warn">Шатко</span></td></tr>
+          <tr><td>Поток выполнения</td><td>1</td><td><span class="badge badge--ok">Контролирует</span></td></tr>
+        </tbody>
+      </table>
+      <a class="btn btn--sm" href="session.html?demo=1">Посмотреть, как собирается протокол</a>
+    </div>
+    <div class="card card--flat reveal" data-delay="120">
+      <h3>Что внутри</h3>
+      <ul class="list">
+        <li>Процент контроля кода и порог допуска 70 %</li>
+        <li>Цитаты мутаций, которые кандидат не заметил</li>
+        <li>Риски для работодателя отдельным блоком</li>
+        <li>Таймлайн сессии с временем на каждый вопрос</li>
+        <li>Отметка воспроизводимости: те же мутации можно пересчитать</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="vs">
+  <h2 class="section__title reveal">Чем отличаемся</h2>
+  <div class="reveal" data-delay="60">
+  <table class="table">
+    <thead><tr><th>Решение</th><th>Что делает</th><th>Где ломается</th></tr></thead>
+    <tbody>
+      <tr><td>HackerRank, CodeSignal, Яндекс Контест</td><td>Автопроверка задач</td><td>Задачу решает ассистент, зелёные тесты ничего не доказывают</td></tr>
+      <tr><td>Прокторинг (Экзамус, ProctorEdu)</td><td>Следит за человеком через камеру</td><td>Ловит поведение, требует биометрии, не работает в закрытом контуре</td></tr>
+      <tr><td>Аутсорс технических интервью</td><td>Живой инженер проводит собес</td><td>Дорого, не масштабируется, вердикт невоспроизводим</td></tr>
+      <tr><td>ИИ-интервьюеры</td><td>Генеративная беседа с кандидатом</td><td>Стоимость растёт с объёмом, апелляцию не разобрать</td></tr>
+      <tr><td><b>ПРУФ</b></td><td>Мутации собственного кода кандидата</td><td>Вердикт воспроизводим построчно, работает офлайн и без LLM</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="muted reveal" data-delay="120">Обзор смежного рынка систем проверки кандидатов: <a href="https://soware.ru/categories/position-candidate-background-check-systems" target="_blank" rel="noopener">soware.ru</a>. Важно: там собраны системы проверки биографии и благонадёжности, а ПРУФ проверяет инженерное понимание — это разные полки в одном бюджете HR.</p>
+</section>
+
+<section class="section" id="pricing">
+  <h2 class="section__title reveal">Тарифы</h2>
+  <p class="section__lead reveal" data-delay="60">Переменная себестоимость сессии — процессорное время контейнера, единицы рублей. Все цифры ниже считаются модулем <code>engine/economics.py</code>.</p>
+  <div class="grid grid--4" id="prices">
+    <article class="card price reveal">
+      <h3>Кандидат</h3>
+      <p class="price__value">0 ₽</p>
+      <ul class="list">
+        <li>Одна проверка бесплатно</li>
+        <li>Протокол остаётся у вас</li>
+        <li>Переиспользуется в других компаниях</li>
+      </ul>
+      <a class="btn btn--sm btn--quiet" href="studio.html">Начать</a>
+    </article>
+    <article class="card price price--accent reveal" data-delay="90">
+      <h3>Верификация</h3>
+      <p class="price__value" id="price-verification">1 500 ₽</p>
+      <ul class="list">
+        <li>За сессию с протоколом</li>
+        <li>Вместо 2–4 часов senior-инженера</li>
+        <li>PDF и вебхук в HR-систему</li>
+      </ul>
+      <button class="btn btn--sm" type="button" data-modal-open="lead">Заказать пилот</button>
+    </article>
+    <article class="card price reveal" data-delay="180">
+      <h3>Подписка компании</h3>
+      <p class="price__value" id="price-subscription">от 90 000 ₽/год</p>
+      <ul class="list">
+        <li>Пакет 100–300 верификаций</li>
+        <li>Карта пробелов по команде</li>
+        <li>Вакансии и сравнение протоколов</li>
+      </ul>
+      <button class="btn btn--sm btn--quiet" type="button" data-modal-open="lead">Обсудить</button>
+    </article>
+    <article class="card price reveal" data-delay="270">
+      <h3>Закрытый контур</h3>
+      <p class="price__value" id="price-onprem">от 400 000 ₽/год</p>
+      <ul class="list">
+        <li>On-premise без интернета</li>
+        <li>Ни одного вызова внешних моделей</li>
+        <li>Исходники отчётов заказчику</li>
+      </ul>
+      <button class="btn btn--sm btn--quiet" type="button" data-modal-open="lead">Запросить условия</button>
+    </article>
+  </div>
+  <div class="kpi reveal" data-delay="120" id="econ">
+    <div class="kpi__item"><div class="kpi__value" id="econ-margin">1 496 ₽</div><div class="kpi__label">маржа с одной сессии</div></div>
+    <div class="kpi__item"><div class="kpi__value" id="econ-saving">3 500 ₽</div><div class="kpi__label">экономия клиента против ручной проверки</div></div>
+    <div class="kpi__item"><div class="kpi__value" id="econ-breakeven">803</div><div class="kpi__label">сессий до безубыточности</div></div>
+    <div class="kpi__item"><div class="kpi__value" id="econ-companies">4</div><div class="kpi__label">активные компании для выхода в ноль</div></div>
+  </div>
+</section>
+
+<section class="section" id="faq">
+  <h2 class="section__title reveal">Вопросы, которые задают чаще всего</h2>
+  <div class="faq reveal" data-delay="60">
+    <details><summary>Кандидат может списать ответы у ИИ?</summary><p>Вопросы строятся из конкретных строк его же решения и живут 15 минут. Чтобы ответить чужой модели, нужно передать ей код, тесты, все мутации и успеть быстрее таймера.</p></details>
+    <details><summary>Нужна ли камера или биометрия?</summary><p>Нет. Проверяется содержание, а не поведение. Это дешевле прокторинга и чище юридически: персональные данные сводятся к имени и решению.</p></details>
+    <details><summary>Работает ли без интернета?</summary><p>Да. Ядро — стандартная библиотека Python без внешних зависимостей и без сетевых вызовов. Именно это открывает закрытые контуры.</p></details>
+    <details><summary>Как разбирать апелляцию?</summary><p>В протоколе есть отпечаток решения и список мутаций. Запустите <code>python3 -m engine.cli analyze</code> — вы получите те же цифры.</p></details>
+    <details><summary>А если у нас уже есть техсобес?</summary><p>ПРУФ не заменяет собес, а ставится перед ним как фильтр: собес начинается с карты пробелов, а не с нуля.</p></details>
+    <details><summary>А вузы?</summary><p>Бесплатно и через LTI 1.3: запуск из курса Moodle, оценка уходит в журнал. Вуз — канал и источник данных, а не плательщик.</p></details>
+  </div>
+</section>
+
+<section class="section section--cta reveal">
+  <div class="card card--accent">
+    <h2>Два пилота и один закрытый контур — план на 12 недель</h2>
+    <p>Прототип работает уже сейчас: движок мутаций, изолятор, сессия защиты и протокол. Напишите — подберём сценарий под ваши вакансии.</p>
+    <div class="row row--wrap">
+      <button class="btn" type="button" data-modal-open="lead">Запросить пилот</button>
+      <a class="btn btn--ghost" href="https://github.com/akekosik/pruf-platform" target="_blank" rel="noopener">Исходный код и документация</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="footer">
+  <div>
+    <p class="brand"><span class="brand__slash">/</span> ПРУФ</p>
+    <p class="muted">Допуск к коду, который нельзя списать. Детерминированно, офлайн, без LLM.</p>
+  </div>
+  <div class="footer__links">
+    <a href="studio.html">Проверка кода</a>
+    <a href="session.html?demo=1">Сессия защиты</a>
+    <a href="employer.html">Работодателю</a>
+    <a href="candidate.html">Кандидату</a>
+    <a href="https://github.com/akekosik/pruf-platform/blob/main/docs/documentation.md" target="_blank" rel="noopener">Документация</a>
+  </div>
+</footer>
+
+<div class="modal" id="modal-lead" hidden>
+  <div class="modal__backdrop" data-modal-close></div>
+  <div class="modal__body">
+    <button class="modal__close" type="button" data-modal-close aria-label="Закрыть">×</button>
+    <h3>Заявка на пилот</h3>
+    <p class="muted">Две недели на договор, пакет до 20 верификаций в пилоте.</p>
+    <form data-lead-form>
+      <label class="field"><span>Имя</span><input name="name" required placeholder="Как к вам обращаться"></label>
+      <label class="field"><span>Компания</span><input name="company" placeholder="Название"></label>
+      <label class="field"><span>Почта или телеграм</span><input name="contact" required placeholder="для ответа"></label>
+      <label class="field"><span>Сценарий</span>
+        <select name="scenario">
+          <option>Найм разработчиков</option>
+          <option>Стажировка или целевой набор</option>
+          <option>Внутренний допуск сотрудников</option>
+          <option>Закрытый контур (on-premise)</option>
+          <option>Вуз или СПО</option>
+        </select>
+      </label>
+      <label class="field"><span>Комментарий</span><textarea name="comment" rows="3" placeholder="Сколько кандидатов в месяц, какие стеки"></textarea></label>
+      <button class="btn btn--wide" type="submit">Отправить заявку</button>
+    </form>
+  </div>
+</div>
+
+<script src="js/app.js"></script>
+<script>
+(function () {
+  var P = window.PRUF;
+  if (!P) return;
+
+  /* 3D-сцена: если ядро ещё не запустило анимацию на canvas, запускаем вручную. */
+  P.ready(function () {
+    setTimeout(function () {
+      var canvas = document.getElementById("scene");
+      if (!canvas || !canvas.getContext) return;
+      var painted = false;
+      try {
+        var ctx = canvas.getContext("2d");
+        var data = ctx.getImageData(0, 0, Math.min(64, canvas.width), Math.min(64, canvas.height)).data;
+        for (var i = 3; i < data.length; i += 4) { if (data[i] !== 0) { painted = true; break; } }
+      } catch (error) { painted = true; }
+      if (!painted && typeof P.scene === "function") {
+        try {
+          P.scene(canvas);
+          var fallback = document.querySelector(".scene__fallback");
+          if (fallback) fallback.style.display = "none";
+        } catch (error) { /* остаётся CSS-куб */ }
+      }
+    }, 420);
+  });
+
+  /* Живой пример: кнопка «Сломать» строит мутации через движок или берёт демо-снимок. */
+  P.ready(function () {
+    var button = document.getElementById("try-break");
+    var host = document.getElementById("try-mutations");
+    var note = document.getElementById("try-note");
+    if (!button || !host) return;
+    button.addEventListener("click", function () {
+      var source = document.getElementById("try-code");
+      var code = source ? source.textContent : "";
+      button.disabled = true;
+      button.textContent = "\u041b\u043e\u043c\u0430\u0435\u043c\u2026";
+      host.innerHTML = "<p class=\"muted\">\u0420\u0430\u0437\u0431\u0438\u0440\u0430\u0435\u043c AST\u2026</p>";
+      P.engine.mutate(code, 8).then(function (preview) {
+        var list = preview.mutations || [];
+        host.innerHTML = "";
+        if (!list.length) {
+          host.innerHTML = "<p class=\"muted\">\u041c\u0443\u0442\u0430\u0446\u0438\u0438 \u043d\u0435 \u043f\u043e\u0441\u0442\u0440\u043e\u0438\u043b\u0438\u0441\u044c.</p>";
+        }
+        list.slice(0, 8).forEach(function (mutation, index) {
+          var item = P.el("div", { class: "mut " + (mutation.status === "survived" ? "is-survived" : mutation.status === "killed" ? "is-killed" : ""), style: "animation-delay:" + (index * 45) + "ms" }, [
+            P.el("div", { class: "mut__head" }, [
+              P.el("span", { class: "mut__id", text: mutation.id }),
+              P.el("span", { class: "mut__line", text: "\u0441\u0442\u0440\u043e\u043a\u0430 " + (mutation.line || "?") }),
+              P.el("span", { class: "mut__status", text: mutation.skill_title || "" })
+            ]),
+            P.el("div", { class: "mut__diff" }, [
+              P.el("code", { class: "mut__before", text: "\u2212 " + (mutation.before || "") }),
+              P.el("code", { class: "mut__after", text: "+ " + (mutation.after || "") })
+            ]),
+            mutation.consequence ? P.el("p", { class: "mut__why", text: mutation.consequence }) : null
+          ]);
+          host.appendChild(item);
+        });
+        if (note) {
+          note.textContent = preview.__demo
+            ? "\u0414\u0435\u043c\u043e-\u0441\u043d\u0438\u043c\u043e\u043a: \u044d\u0442\u043e \u0440\u0435\u0430\u043b\u044c\u043d\u044b\u0439 \u0440\u0435\u0437\u0443\u043b\u044c\u0442\u0430\u0442 \u043f\u0440\u043e\u0433\u043e\u043d\u0430 \u0434\u0432\u0438\u0436\u043a\u0430, \u0437\u0430\u0444\u0438\u043a\u0441\u0438\u0440\u043e\u0432\u0430\u043d\u043d\u044b\u0439 \u0432 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0438. \u0417\u0430\u043f\u0443\u0441\u0442\u0438\u0442\u0435 python3 -m engine.cli serve \u2014 \u0438 \u043c\u0443\u0442\u0430\u0446\u0438\u0438 \u0431\u0443\u0434\u0443\u0442 \u0441\u0447\u0438\u0442\u0430\u0442\u044c\u0441\u044f \u043d\u0430 \u043b\u044e\u0431\u043e\u043c \u0432\u0430\u0448\u0435\u043c \u043a\u043e\u0434\u0435."
+            : "\u041c\u0443\u0442\u0430\u0446\u0438\u0438 \u043f\u043e\u0441\u0442\u0440\u043e\u0435\u043d\u044b \u0436\u0438\u0432\u044b\u043c \u0434\u0432\u0438\u0436\u043a\u043e\u043c: \u043c\u0435\u0441\u0442 \u0434\u043b\u044f \u043f\u0440\u0430\u0432\u043a\u0438 \u2014 " + (preview.sites || list.length) + ".";
+        }
+      }).catch(function (error) {
+        host.innerHTML = "<p class=\"muted\">\u041e\u0448\u0438\u0431\u043a\u0430: " + P.escapeHtml(error.message) + "</p>";
+      }).then(function () {
+        button.disabled = false;
+        button.textContent = "\u0421\u043b\u043e\u043c\u0430\u0442\u044c \u0435\u0449\u0451 \u0440\u0430\u0437";
+      });
+    });
+  });
+
+  /* Цифры тарифов и юнит-экономики берутся из engine/economics.py. */
+  P.ready(function () {
+    P.engine.economics().then(function (data) {
+      var unit = data.unit || {}, breakeven = data.breakeven || {}, prices = data.prices || {};
+      function set(id, value) { var node = document.getElementById(id); if (node && value !== undefined && value !== null) node.textContent = value; }
+      set("econ-margin", P.money(unit.margin));
+      set("econ-saving", P.money(unit.client_saving));
+      set("econ-breakeven", breakeven.sessions_needed);
+      set("econ-companies", breakeven.companies_needed);
+      if (prices.verification) set("price-verification", prices.verification);
+      if (prices.subscription) set("price-subscription", prices.subscription);
+      if (prices.onprem) set("price-onprem", prices.onprem);
+    }).catch(function () { /* остаются статичные значения из разметки */ });
+  });
+})();
+</script>
+</body>
+</html>
