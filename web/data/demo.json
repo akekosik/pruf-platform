@@ -1,0 +1,180 @@
+{
+  "note": "Демо-снимок реального прогона движка (python3 -m engine.cli demo). Используется, когда сервер не запущен. Чтобы проверить свой код, поднимите локальный сервер.",
+  "generated": "2026-09-15",
+  "tasks": [
+    {
+      "id": "orders",
+      "title": "Разбор заказов из текстового файла",
+      "level": "junior",
+      "language": "Python",
+      "minutes": 40,
+      "statement": "Разобрать строки вида «имя;количество;цена», посчитать сумму с ограничением на заказ.",
+      "skills": ["Границы и индексы", "Обработка ошибок", "Арифметика и накопление"],
+      "code": "def parse_orders(raw):\n    \"\"\"Разбирает строки заказов вида: имя;количество;цена.\"\"\"\n    orders = []\n    for line in raw.strip().splitlines():\n        parts = line.split(\";\")\n        if len(parts) < 3:\n            continue\n        name = parts[0].strip()\n        try:\n            qty = int(parts[1])\n            price = float(parts[2])\n        except ValueError:\n            raise ValueError(\"некорректная строка: \" + line)\n        orders.append({\"name\": name, \"qty\": qty, \"price\": price})\n    return orders\n\n\ndef total_amount(orders, limit=1000.0):\n    \"\"\"Сумма заказов, каждый заказ ограничен сверху значением limit.\"\"\"\n    total = 0.0\n    for order in orders:\n        amount = order[\"qty\"] * order[\"price\"]\n        if amount > limit:\n            amount = limit\n        total += amount\n    return round(total, 2)\n",
+      "tests": "from solution import parse_orders, total_amount\n\n\ndef test_parse_basic():\n    rows = parse_orders(\"Болт;10;5.5\\nГайка;2;3.0\")\n    assert len(rows) == 2\n    assert rows[0][\"name\"] == \"Болт\"\n    assert rows[0][\"qty\"] == 10\n\n\ndef test_total_simple():\n    rows = [{\"name\": \"a\", \"qty\": 2, \"price\": 10.0}]\n    assert total_amount(rows) == 20.0\n\n\ndef test_limit_applied():\n    rows = [{\"name\": \"a\", \"qty\": 100, \"price\": 50.0}]\n    assert total_amount(rows, limit=1000.0) == 1000.0\n\n\ndef test_skips_short_lines():\n    rows = parse_orders(\"Болт;10;5.5\\nсломанная строка\")\n    assert len(rows) == 1\n"
+    },
+    {
+      "id": "words",
+      "title": "Частотный анализ текста",
+      "level": "junior",
+      "language": "Python",
+      "minutes": 35,
+      "statement": "Нормализовать текст, посчитать слова не короче заданной длины и выдать топ-N.",
+      "skills": ["Работа со строками", "Коллекции и принадлежность", "Границы и индексы"],
+      "code": "def normalize(text):\n    \"\"\"Приводит текст к нижнему регистру и убирает лишние пробелы.\"\"\"\n    return \" \".join(text.lower().split())\n\n\ndef word_counts(text, min_length=3):\n    \"\"\"Считает слова длиной не меньше min_length.\"\"\"\n    counts = {}\n    for word in normalize(text).split(\" \"):\n        cleaned = word.strip(\".,!?:;()\")\n        if len(cleaned) < min_length:\n            continue\n        counts[cleaned] = counts.get(cleaned, 0) + 1\n    return counts\n\n\ndef top_words(text, size=3):\n    \"\"\"Возвращает size самых частых слов.\"\"\"\n    counts = word_counts(text)\n    ordered = sorted(counts.items(), key=lambda pair: (-pair[1], pair[0]))\n    return [word for word, _ in ordered[:size]]\n",
+      "tests": "from solution import normalize, word_counts, top_words\n\n\ndef test_normalize_collapses_spaces():\n    assert normalize(\"  Привет   МИР \") == \"привет мир\"\n\n\ndef test_counts_skip_short():\n    counts = word_counts(\"да да нет кода кода кода\")\n    assert counts == {\"нет\": 1, \"кода\": 3}\n\n\ndef test_top_words_order():\n    assert top_words(\"кода кода тест тест тест байт\", size=2) == [\"тест\", \"кода\"]\n"
+    },
+    {
+      "id": "phones",
+      "title": "Нормализация телефонных номеров",
+      "level": "middle",
+      "language": "Python",
+      "minutes": 30,
+      "statement": "Очистить номера от лишних символов, привести к формату 7XXXXXXXXXX и отбросить дубли.",
+      "skills": ["Работа со строками", "Логика условий", "Коллекции и принадлежность"],
+      "code": "def clean_phone(raw):\n    \"\"\"Оставляет только цифры номера и приводит его к виду 7XXXXXXXXXX.\"\"\"\n    digits = \"\".join(ch for ch in raw if ch.isdigit())\n    if len(digits) == 11 and digits.startswith(\"8\"):\n        digits = \"7\" + digits[1:]\n    return digits\n\n\ndef is_valid(raw):\n    \"\"\"Номер корректен, если в нём 11 цифр и он начинается с 7.\"\"\"\n    digits = clean_phone(raw)\n    return len(digits) == 11 and digits.startswith(\"7\")\n\n\ndef unique_valid(rows):\n    \"\"\"Уникальные корректные номера в порядке появления.\"\"\"\n    seen = []\n    for row in rows:\n        digits = clean_phone(row)\n        if not is_valid(row):\n            continue\n        if digits in seen:\n            continue\n        seen.append(digits)\n    return seen\n",
+      "tests": "from solution import clean_phone, is_valid, unique_valid\n\n\ndef test_clean_converts_eight():\n    assert clean_phone(\"8 (912) 345-67-89\") == \"79123456789\"\n\n\ndef test_valid_and_invalid():\n    assert is_valid(\"+7 912 345 67 89\") is True\n    assert is_valid(\"12345\") is False\n\n\ndef test_unique_keeps_order():\n    rows = [\"8 912 345 67 89\", \"+7 912 345 67 89\", \"+7 495 000 00 00\"]\n    assert unique_valid(rows) == [\"79123456789\", \"74950000000\"]\n"
+    }
+  ],
+  "vacancies": [
+    {"id": "py-dev", "title": "Python-разработчик", "team": "Платёжный шлюз", "task": "orders"},
+    {"id": "backend-senior", "title": "Backend Senior", "team": "Ядро продукта", "task": "phones"},
+    {"id": "qa-auto", "title": "QA Automation", "team": "Качество", "task": "words"}
+  ],
+  "analysis": {
+    "schema": "pruf.analysis/1",
+    "ok": true,
+    "stage": "done",
+    "lines": 26,
+    "sites": 16,
+    "baseline": {"ok": true, "passed": 4, "failed": 0, "errored": 0, "duration_ms": 5, "tests": ["test_parse_basic", "test_total_simple", "test_limit_applied", "test_skips_short_lines"]},
+    "mutation_total": 13,
+    "killed": 8,
+    "survived": 5,
+    "mutation_score": 0.6153,
+    "mutation_score_pct": 62,
+    "duration_ms": 742,
+    "verdict": {"level": "medium", "label": "Есть дыры в тестах", "summary": "Тесты ловят большую часть правок, но пять мутаций прошли незамеченными."},
+    "mutations": [
+      {"id": "M01", "operator": "CALL_DROP_METHOD", "skill": "strings", "skill_title": "Работа со строками", "line": 4, "before": "raw.strip().splitlines()", "after": "raw.splitlines()", "status": "survived", "killed_by": [], "consequence": "Переводы строк и пробелы по краям больше не срезаются", "suggestion": "Добавьте тест с пустой строкой в конце входных данных."},
+      {"id": "M02", "operator": "CALL_SWAP_METHOD", "skill": "strings", "skill_title": "Работа со строками", "line": 5, "before": "line.split(\";\")", "after": "line.rsplit(';')", "status": "survived", "killed_by": [], "consequence": "Разбор идёт с конца строки", "suggestion": "Добавьте строку с лишним разделителем внутри имени."},
+      {"id": "M03", "operator": "CMP_BOUNDARY", "skill": "boundary", "skill_title": "Границы и индексы", "line": 6, "before": "len(parts) < 3", "after": "len(parts) <= 3", "status": "killed", "killed_by": ["test_parse_basic"], "consequence": "Корректные строки из трёх полей пропускаются", "suggestion": ""},
+      {"id": "M04", "operator": "CONST_INT", "skill": "boundary", "skill_title": "Границы и индексы", "line": 6, "before": "< 3", "after": "< 4", "status": "killed", "killed_by": ["test_parse_basic"], "consequence": "Сдвиг границы числа полей", "suggestion": ""},
+      {"id": "M05", "operator": "CALL_DROP_METHOD", "skill": "strings", "skill_title": "Работа со строками", "line": 8, "before": "parts[0].strip()", "after": "parts[0]", "status": "survived", "killed_by": [], "consequence": "В имени остаются краевые пробелы", "suggestion": "Добавьте строку с пробелами вокруг имени заказа."},
+      {"id": "M06", "operator": "CONST_INT", "skill": "boundary", "skill_title": "Границы и индексы", "line": 8, "before": "parts[0]", "after": "parts[1]", "status": "killed", "killed_by": ["test_parse_basic"], "consequence": "Берётся соседнее поле", "suggestion": ""},
+      {"id": "M07", "operator": "EXCEPT_SWALLOW", "skill": "errors", "skill_title": "Обработка ошибок", "line": 13, "before": "raise ValueError(...)", "after": "pass", "status": "survived", "killed_by": [], "consequence": "Ошибка разбора молча глотается", "suggestion": "Добавьте тест, который ждёт ValueError на битой строке."},
+      {"id": "M08", "operator": "CALL_SWAP_METHOD", "skill": "collections", "skill_title": "Коллекции и принадлежность", "line": 14, "before": "orders.append({...})", "after": "orders.insert(0, {...})", "status": "killed", "killed_by": ["test_parse_basic"], "consequence": "Порядок заказов переворачивается", "suggestion": ""},
+      {"id": "M09", "operator": "RETURN_DROP", "skill": "flow", "skill_title": "Поток выполнения", "line": 15, "before": "return orders", "after": "return None", "status": "killed", "killed_by": ["test_parse_basic", "test_skips_short_lines"], "consequence": "Функция ничего не возвращает", "suggestion": ""},
+      {"id": "M10", "operator": "ARITH_OP", "skill": "arithmetic", "skill_title": "Арифметика и накопление", "line": 21, "before": "qty * price", "after": "qty / price", "status": "killed", "killed_by": ["test_total_simple", "test_limit_applied"], "consequence": "Сумма считается делением", "suggestion": ""},
+      {"id": "M11", "operator": "CMP_BOUNDARY", "skill": "boundary", "skill_title": "Границы и индексы", "line": 22, "before": "amount > limit", "after": "amount >= limit", "status": "survived", "killed_by": [], "consequence": "Сумма ровно на границе обрезается", "suggestion": "Добавьте тест со значением ровно на границе условия."},
+      {"id": "M12", "operator": "AUG_OP", "skill": "arithmetic", "skill_title": "Арифметика и накопление", "line": 24, "before": "total += amount", "after": "total -= amount", "status": "killed", "killed_by": ["test_total_simple", "test_limit_applied"], "consequence": "Накопление работает в минус", "suggestion": ""},
+      {"id": "M13", "operator": "RETURN_DROP", "skill": "flow", "skill_title": "Поток выполнения", "line": 25, "before": "return round(total, 2)", "after": "return None", "status": "killed", "killed_by": ["test_total_simple", "test_limit_applied"], "consequence": "Итог не возвращается", "suggestion": ""}
+    ],
+    "gaps": [
+      {"id": "M01", "line": 4, "suggestion": "Добавьте тест с пустой строкой в конце входных данных."},
+      {"id": "M02", "line": 5, "suggestion": "Добавьте строку с лишним разделителем внутри имени."},
+      {"id": "M05", "line": 8, "suggestion": "Добавьте строку с пробелами вокруг имени заказа."},
+      {"id": "M07", "line": 13, "suggestion": "Добавьте тест, который ждёт ValueError на битой строке."},
+      {"id": "M11", "line": 22, "suggestion": "Добавьте тест со значением ровно на границе условия."}
+    ],
+    "skills": [
+      {"skill": "boundary", "title": "Границы и индексы", "total": 4, "killed": 3, "survived": 1, "coverage": 75},
+      {"skill": "strings", "title": "Работа со строками", "total": 3, "killed": 0, "survived": 3, "coverage": 0},
+      {"skill": "arithmetic", "title": "Арифметика и накопление", "total": 2, "killed": 2, "survived": 0, "coverage": 100},
+      {"skill": "flow", "title": "Поток выполнения", "total": 2, "killed": 2, "survived": 0, "coverage": 100},
+      {"skill": "errors", "title": "Обработка ошибок", "total": 1, "killed": 0, "survived": 1, "coverage": 0},
+      {"skill": "collections", "title": "Коллекции и принадлежность", "total": 1, "killed": 1, "survived": 0, "coverage": 100}
+    ],
+    "tests": [
+      {"name": "test_parse_basic", "status": "passed", "duration_ms": 1, "kills": 4, "verdict": "Ловит 4 правки"},
+      {"name": "test_total_simple", "status": "passed", "duration_ms": 1, "kills": 3, "verdict": "Ловит 3 правки"},
+      {"name": "test_limit_applied", "status": "passed", "duration_ms": 1, "kills": 3, "verdict": "Ловит 3 правки"},
+      {"name": "test_skips_short_lines", "status": "passed", "duration_ms": 1, "kills": 1, "verdict": "Ловит 1 правку"}
+    ],
+    "useless_tests": []
+  },
+  "run": {
+    "schema": "pruf.sandbox.run/1",
+    "ok": true, "passed": 4, "failed": 0, "errored": 0, "duration_ms": 5, "timeout": false,
+    "tests": [
+      {"name": "test_parse_basic", "status": "passed", "duration_ms": 1, "message": ""},
+      {"name": "test_total_simple", "status": "passed", "duration_ms": 1, "message": ""},
+      {"name": "test_limit_applied", "status": "passed", "duration_ms": 1, "message": ""},
+      {"name": "test_skips_short_lines", "status": "passed", "duration_ms": 2, "message": ""}
+    ]
+  },
+  "protocol": {
+    "schema": "pruf.protocol/1",
+    "id": "p-demo00000001",
+    "session": "s-demo00000001",
+    "candidate": {"name": "Анна Коробкова", "role": "Python-разработчик", "vacancy": "Python-разработчик", "company": "Демо-компания"},
+    "task": {"title": "Разбор заказов из текстового файла", "language": "Python", "lines": 26, "sites": 16},
+    "control_pct": 77,
+    "passed": true,
+    "pass_threshold_pct": 70,
+    "verdict": {"level": "medium", "label": "Понимание подтверждено с оговорками", "summary": "Кандидат видит последствия правок в арифметике и потоке выполнения, но пропускает тихие правки в строках.", "tests_note": "Набор тестов ловит 62 % правок: пять дыр."},
+    "mutation": {"total": 13, "killed": 8, "survived": 5, "score_pct": 62, "verdict": "Есть дыры в тестах"},
+    "questions": {"total": 13, "answered": 13, "correct": 10},
+    "skills": [
+      {"skill": "boundary", "title": "Границы и индексы", "total": 5, "correct": 4, "ratio": 0.8, "level": "control", "label": "Контролирует"},
+      {"skill": "strings", "title": "Работа со строками", "total": 4, "correct": 2, "ratio": 0.5, "level": "shaky", "label": "Шатко"},
+      {"skill": "arithmetic", "title": "Арифметика и накопление", "total": 2, "correct": 2, "ratio": 1.0, "level": "control", "label": "Контролирует"},
+      {"skill": "errors", "title": "Обработка ошибок", "total": 1, "correct": 1, "ratio": 1.0, "level": "control", "label": "Контролирует"},
+      {"skill": "flow", "title": "Поток выполнения", "total": 1, "correct": 1, "ratio": 1.0, "level": "control", "label": "Контролирует"}
+    ],
+    "risks": [
+      {"kind": "tests", "title": "Дыра в тестах: граница лимита", "detail": "Правка amount > limit → amount >= limit прошла незамеченной."},
+      {"kind": "skill", "title": "Шатко: Работа со строками", "detail": "Два из четырёх вопросов про strip/split разобраны неверно."},
+      {"kind": "tests", "title": "Дыра в тестах: глушение ошибки", "detail": "Замена raise ValueError на pass не уловлена ни одним тестом."}
+    ],
+    "quotes": [
+      {"id": "M01", "line": 4, "before": "raw.strip().splitlines()", "after": "raw.splitlines()", "note": "Кандидат сказал, что тест упадёт. Ни один тест не упал."},
+      {"id": "M11", "line": 22, "before": "amount > limit", "after": "amount >= limit", "note": "Граница не проверяется тестами."}
+    ],
+    "timeline": [
+      {"id": "M03", "ok": true, "clock": "01:12", "label": "разобрал"},
+      {"id": "M01", "ok": false, "clock": "00:48", "label": "не заметил"},
+      {"id": "M04", "ok": true, "clock": "00:39", "label": "разобрал"},
+      {"id": "M02", "ok": false, "clock": "01:05", "label": "не заметил"},
+      {"id": "M06", "ok": true, "clock": "00:52", "label": "разобрал"},
+      {"id": "M08", "ok": true, "clock": "00:44", "label": "разобрал"},
+      {"id": "M07", "ok": true, "clock": "01:03", "label": "разобрал"},
+      {"id": "M05", "ok": false, "clock": "00:58", "label": "не заметил"}
+    ],
+    "duration_seconds": 611,
+    "duration_clock": "10:11",
+    "reproducible": true
+  },
+  "candidates_page": {
+    "candidates": [
+      {"id": "c-01", "name": "Анна Коробкова", "role": "Python-разработчик", "vacancy": "Python-разработчик", "vacancy_id": "py-dev", "task": "Разбор заказов из текстового файла", "submitted": "2026-09-11", "source": "hh.ru", "status": "Протокол готов", "control_pct": 84, "passed": true, "mutation_score_pct": 62, "mutation_total": 13, "survived": 5, "verdict": "Понимание подтверждено", "level": "good", "risks": 2, "duration_clock": "09:41"},
+      {"id": "c-02", "name": "Дмитрий Савельев", "role": "Python-разработчик", "vacancy": "Python-разработчик", "vacancy_id": "py-dev", "task": "Разбор заказов из текстового файла", "submitted": "2026-09-11", "source": "телеграм-канал", "status": "Нужен разбор", "control_pct": 31, "passed": false, "mutation_score_pct": 23, "mutation_total": 13, "survived": 10, "verdict": "Понимание не подтверждено", "level": "bad", "risks": 6, "duration_clock": "06:12"},
+      {"id": "c-03", "name": "Камиль Гарифуллин", "role": "Backend Senior", "vacancy": "Backend Senior", "vacancy_id": "backend-senior", "task": "Нормализация телефонных номеров", "submitted": "2026-09-12", "source": "рекомендация", "status": "Протокол готов", "control_pct": 76, "passed": true, "mutation_score_pct": 71, "mutation_total": 12, "survived": 3, "verdict": "Понимание подтверждено с оговорками", "level": "medium", "risks": 3, "duration_clock": "11:04"},
+      {"id": "c-04", "name": "Ольга Нечаева", "role": "Backend Senior", "vacancy": "Backend Senior", "vacancy_id": "backend-senior", "task": "Нормализация телефонных номеров", "submitted": "2026-09-12", "source": "hh.ru", "status": "На разборе", "control_pct": 54, "passed": false, "mutation_score_pct": 33, "mutation_total": 12, "survived": 8, "verdict": "Шаткое понимание", "level": "low", "risks": 5, "duration_clock": "08:20"},
+      {"id": "c-05", "name": "Руслан Шайхутдинов", "role": "QA Automation", "vacancy": "QA Automation", "vacancy_id": "qa-auto", "task": "Частотный анализ текста", "submitted": "2026-09-13", "source": "вуз-канал", "status": "Протокол готов", "control_pct": 69, "passed": false, "mutation_score_pct": 67, "mutation_total": 12, "survived": 4, "verdict": "Шаткое понимание", "level": "low", "risks": 4, "duration_clock": "10:47"},
+      {"id": "c-06", "name": "Елена Баранова", "role": "QA Automation", "vacancy": "QA Automation", "vacancy_id": "qa-auto", "task": "Частотный анализ текста", "submitted": "2026-09-13", "source": "стажировка", "status": "Нужен разбор", "control_pct": 22, "passed": false, "mutation_score_pct": 25, "mutation_total": 12, "survived": 9, "verdict": "Понимание не подтверждено", "level": "bad", "risks": 7, "duration_clock": "05:33"}
+    ],
+    "vacancies": [
+      {"id": "py-dev", "title": "Python-разработчик", "team": "Платёжный шлюз", "task": "orders"},
+      {"id": "backend-senior", "title": "Backend Senior", "team": "Ядро продукта", "task": "phones"},
+      {"id": "qa-auto", "title": "QA Automation", "team": "Качество", "task": "words"}
+    ],
+    "stats": {"total": 6, "passed": 2, "rejected": 4, "average_control": 56.0, "saved_hours": 12}
+  },
+  "economics": {
+    "schema": "pruf.economics/1",
+    "unit": {"price": 1500, "variable_cost": 4, "margin": 1496, "margin_pct": 99.73, "manual_alternative": 5000, "client_saving": 3500, "client_saving_pct": 70.0},
+    "breakeven": {"fixed_costs_year": 1200000, "margin_per_session": 1496, "sessions_needed": 803, "companies_needed": 4.0, "sessions_per_company_year": 200, "comment": "Безубыточность — порядка 800–900 верификаций в год, это 3–5 активных компаний."},
+    "scenarios": [
+      {"name": "Пилот: 2 компании, 60 верификаций", "revenue": 90000, "variable_costs": 240, "fixed_costs": 1200000, "result": -1110240, "result_without_fixed": 89760},
+      {"name": "Год 1: 5 компаний по подписке", "revenue": 1650000, "variable_costs": 2400, "fixed_costs": 1200000, "result": 447600, "result_without_fixed": 1647600},
+      {"name": "Год 1 + закрытый контур", "revenue": 2300000, "variable_costs": 2400, "fixed_costs": 1200000, "result": 1097600, "result_without_fixed": 2297600},
+      {"name": "Год 2: 12 компаний + 2 on-premise", "revenue": 5800000, "variable_costs": 7200, "fixed_costs": 1200000, "result": 4592800, "result_without_fixed": 5792800}
+    ],
+    "comparison": {
+      "stapel": {"payer": "Кафедра вуза", "price": "190 ₽ за студента в год", "pilot_result": -9272, "year1_result": -403086, "breakeven": "3745 студентов (2–3 вуза)", "sales_cycle": "Учебный год и дольше, через закупку"},
+      "pruf": {"payer": "ИТ-компания 50–500 человек", "price": "1 500 ₽ за верификацию", "breakeven": "803 верификации (4.0 компаний)", "sales_cycle": "Пилот за две недели, без закупочных процедур", "universities": "0 ₽ — канал и данные, а не выручка"}
+    },
+    "prices": {"verification": "1 200–1 800 ₽ за сессию", "subscription": "90 000–250 000 ₽ в год", "onprem": "400 000–900 000 ₽ в год", "education": "0 ₽"}
+  }
+}
