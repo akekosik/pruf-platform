@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ПРУФ · кабинет работодателя</title>
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<header class="nav">
+  <a class="brand" href="index.html"><span class="brand__slash">/</span> ПРУФ</a>
+  <nav class="nav__links">
+    <a href="index.html">Главная</a>
+    <a href="studio.html">Проверка кода</a>
+    <a href="session.html?demo=1">Сессия защиты</a>
+    <a href="employer.html">Кабинет работодателя</a>
+    <a href="candidate.html">Кабинет кандидата</a>
+  </nav>
+  <div class="nav__actions">
+    <span class="enginebar" data-engine-badge></span>
+    <button class="btn btn--sm" type="button" data-modal-open="check">Новая проверка</button>
+  </div>
+</header>
+
+<main class="page">
+
+  <section class="page__head reveal">
+    <h1>Кандидаты</h1>
+    <p class="section__lead">Протоколы понимания вместо галочки «тесты прошли»: процент контроля кода, дыры в тестах и цитаты правок, которые человек не заметил.</p>
+  </section>
+
+  <section class="kpi reveal" id="kpi" data-delay="60"></section>
+
+  <section class="toolbar reveal" data-delay="90">
+    <div class="row row--wrap" id="vacancies"></div>
+    <label class="field field--inline">
+      <span>Поиск</span>
+      <input id="search" placeholder="Имя, вакансия, статус">
+    </label>
+    <label class="field field--inline">
+      <span>Сортировка</span>
+      <select id="sort">
+        <option value="control">По контролю кода</option>
+        <option value="risks">По рискам</option>
+        <option value="date">По дате</option>
+      </select>
+    </label>
+    <button class="btn btn--quiet btn--sm" type="button" id="btn-csv">Выгрузить CSV</button>
+  </section>
+
+  <section class="grid grid--sidebar reveal" data-delay="120">
+    <div class="card">
+      <h3>Пул проверок</h3>
+      <div id="candidates"><p class="muted">Грузим кандидатов…</p></div>
+    </div>
+    <div class="card card--accent" id="detail">
+      <p class="muted">Выберите кандидата, чтобы открыть протокол.</p>
+    </div>
+  </section>
+
+  <section class="section reveal" data-delay="150">
+    <div class="grid grid--3">
+      <div class="card card--flat">
+        <h4>Как читать процент контроля</h4>
+        <p class="muted">Доля верно разобранных вопросов по мутациям своего же кода. Порог допуска — 70 %. Ниже порога — не «плохой кандидат», а конкретный список пробелов к собеседованию.</p>
+      </div>
+      <div class="card card--flat">
+        <h4>Что даёт фильтр до техсобеса</h4>
+        <p class="muted">Одна сессия — 15 минут времени кандидата и ноль времени вашего инженера. На пакете из 20 кандидатов это около 40 сэкономленных часов senior-ревью.</p>
+      </div>
+      <div class="card card--flat">
+        <h4>Спорные случаи</h4>
+        <p class="muted">Каждый вердикт воспроизводим: в протоколе есть отпечаток решения и список мутаций — их можно пересчитать командой CLI и получить те же цифры.</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <div>
+    <p class="brand"><span class="brand__slash">/</span> ПРУФ</p>
+    <p class="muted">Вебхук в HR-систему, экспорт CSV, LTI 1.3 для вузовского канала.</p>
+  </div>
+  <div class="footer__links">
+    <a href="studio.html">Проверка кода</a>
+    <a href="candidate.html">Кабинет кандидата</a>
+    <a href="index.html#pricing">Тарифы</a>
+  </div>
+</footer>
+
+<div class="modal" id="modal-check" hidden>
+  <div class="modal__backdrop" data-modal-close></div>
+  <div class="modal__body">
+    <button class="modal__close" type="button" data-modal-close aria-label="Закрыть">×</button>
+    <h3>Новая проверка</h3>
+    <p class="muted">Ссылка для кандидата: сессия живёт 15 минут после старта, прокторинг не нужен.</p>
+    <form id="new-check">
+      <label class="field"><span>Вакансия</span><select name="vacancy" id="check-vacancy"></select></label>
+      <label class="field"><span>Источник решения</span>
+        <select name="source">
+          <option>Репозиторий или архив</option>
+          <option>Один файл solution.py</option>
+          <option>Кандидат пишет код в студии</option>
+        </select>
+      </label>
+      <label class="field"><span>Язык</span>
+        <select name="language">
+          <option>Python</option>
+          <option>JavaScript (в работе, неделя 8)</option>
+          <option>Java (в работе, неделя 8)</option>
+        </select>
+      </label>
+      <label class="field"><span>Длительность</span>
+        <select name="duration">
+          <option>15 минут · 13 вопросов</option>
+          <option>10 минут · 8 вопросов</option>
+          <option>20 минут · 15 вопросов</option>
+        </select>
+      </label>
+      <button class="btn btn--wide" type="submit">Создать ссылку</button>
+    </form>
+    <div class="row row--wrap" id="check-link" hidden></div>
+  </div>
+</div>
+
+<script src="js/app.js"></script>
+<script src="js/employer.js"></script>
+</body>
+</html>
