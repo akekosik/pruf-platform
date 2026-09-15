@@ -1,132 +1,261 @@
-/*
- * ПРУФ · web/js/candidate.js
- * Кабинет кандидата: свой протокол, карта пробелов, повторное использование результата.
- */
-(function (global) {
-  "use strict";
-  var P = global.PRUF;
-  var $ = P.$, el = P.el, esc = P.escapeHtml;
+/* ============================================================================
+   Кабинет кандидата: свой протокол, карта пробелов, история и отправка.
+   ============================================================================ */
+(function () {
+	"use strict"
+	var P = window.PRUF
+	var LS_SESSIONS = "pruf.candidate.sessions"
 
-  function renderProtocol(protocol, demo) {
-    var host = $("#my-protocol");
-    if (!host) return;
-    var verdict = protocol.verdict || {};
-    var mutation = protocol.mutation || {};
-    var questions = protocol.questions || {};
-    host.innerHTML = "";
+	var S = { rows: [], bundle: null, id: "" }
 
-    host.appendChild(el("div", { class: "row row--between" }, [
-      el("div", {}, [
-        el("h2", { text: "\u041f\u0440\u043e\u0442\u043e\u043a\u043e\u043b \u043f\u043e\u043d\u0438\u043c\u0430\u043d\u0438\u044f" }),
-        el("p", { class: "muted", text: ((protocol.task || {}).title || "") + " \u00b7 " + ((protocol.task || {}).language || "Python") })
-      ]),
-      el("div", { class: "protocol__score" }, [
-        el("div", { class: "kpi__value", text: (protocol.control_pct || 0) + " %" }),
-        el("div", { class: "kpi__label", text: "\u043a\u043e\u043d\u0442\u0440\u043e\u043b\u044c \u043a\u043e\u0434\u0430" })
-      ])
-    ]));
-    host.appendChild(el("p", { class: "badge " + P.levelClass(verdict.level), text: verdict.label || "" }));
-    if (verdict.summary) host.appendChild(el("p", { text: verdict.summary }));
-    host.appendChild(el("div", { class: "kpi" }, [
-      el("div", { class: "kpi__item" }, [el("div", { class: "kpi__value", text: String(mutation.total || 0) }), el("div", { class: "kpi__label", text: "\u043c\u0443\u0442\u0430\u0446\u0438\u0439 \u0440\u0430\u0437\u043e\u0431\u0440\u0430\u043d\u043e" })]),
-      el("div", { class: "kpi__item" }, [el("div", { class: "kpi__value", text: (mutation.score_pct || 0) + " %" }), el("div", { class: "kpi__label", text: "\u0442\u0435\u0441\u0442\u044b \u043b\u043e\u0432\u044f\u0442" })]),
-      el("div", { class: "kpi__item" }, [el("div", { class: "kpi__value", text: (questions.correct || 0) + " / " + (questions.answered || 0) }), el("div", { class: "kpi__label", text: "\u0432\u0435\u0440\u043d\u044b\u0445 \u043e\u0442\u0432\u0435\u0442\u043e\u0432" })]),
-      el("div", { class: "kpi__item" }, [el("div", { class: "kpi__value", text: protocol.duration_clock || "" }), el("div", { class: "kpi__label", text: "\u0434\u043b\u0438\u0442\u0435\u043b\u044c\u043d\u043e\u0441\u0442\u044c" })])
-    ]));
+	function $(id) {
+		return document.getElementById(id)
+	}
+	function esc(value) {
+		return P.esc(value === undefined || value === null ? "" : String(value))
+	}
+	function bar(pct) {
+		return '<div class="cab-bar ' + P.barClass(pct) + '"><i style="width:' + Math.max(0, Math.min(100, pct)) + '%"></i></div>'
+	}
+	function stat(value, label) {
+		return '<div class="stat"><div class="stat-num">' + esc(value) + '</div><div class="stat-label">' + esc(label) + "</div></div>"
+	}
+	function localSessions() {
+		try {
+			var raw = localStorage.getItem(LS_SESSIONS)
+			var parsed = raw ? JSON.parse(raw) : []
+			return Array.isArray(parsed) ? parsed : []
+		} catch (e) {
+			return []
+		}
+	}
 
-    var skills = protocol.skills || [];
-    if (skills.length) {
-      var grid = el("div", { class: "grid grid--2" });
-      skills.forEach(function (row) {
-        var cls = row.level === "control" ? "badge--ok" : row.level === "shaky" ? "badge--warn" : "badge--bad";
-        grid.appendChild(el("div", { class: "card card--flat" }, [
-          el("b", { text: row.title || row.skill }),
-          el("p", {}, [el("span", { class: "badge " + cls, text: row.label || "" })]),
-          el("div", { class: "progress" }, [el("span", { style: "width:" + Math.round((row.ratio || 0) * 100) + "%" })]),
-          el("p", { class: "muted", text: (row.correct || 0) + " \u0438\u0437 " + (row.total || 0) + " \u0432\u043e\u043f\u0440\u043e\u0441\u043e\u0432" })
-        ]));
-      });
-      host.appendChild(el("h3", { text: "\u0413\u0434\u0435 \u043f\u0440\u043e\u0431\u0435\u043b\u044b" }));
-      host.appendChild(grid);
-    }
+	function render(bundle) {
+		S.bundle = bundle
+		var candidate = bundle.candidate || {}
+		var protocol = bundle.protocol || {}
+		var verdict = protocol.verdict || {}
+		var mutation = protocol.mutation || {}
+		var questions = protocol.questions || {}
 
-    var risks = protocol.risks || [];
-    if (risks.length) {
-      var list = el("ul", { class: "list" });
-      risks.forEach(function (risk) {
-        list.appendChild(el("li", { html: "<b>" + esc(risk.title || "") + "</b> \u2014 " + esc(risk.detail || "") }));
-      });
-      host.appendChild(el("h3", { text: "\u0427\u0442\u043e \u043f\u043e\u0434\u0442\u044f\u043d\u0443\u0442\u044c \u0434\u043e \u0441\u043e\u0431\u0435\u0441\u0435\u0434\u043e\u0432\u0430\u043d\u0438\u044f" }));
-      host.appendChild(list);
-    }
+		$("kpi").innerHTML =
+			stat(protocol.control_pct + " %", "контроль понимания") +
+			stat(mutation.total, "мутаций в сессии") +
+			stat(questions.correct + " / " + questions.total, "верных ответов") +
+			stat(mutation.score_pct + " %", "мутационный счёт тестов") +
+			stat(protocol.duration_clock || "—", "длительность защиты")
 
-    var actions = el("div", { class: "row row--wrap" });
-    var share = el("button", { class: "btn btn--sm", type: "button", text: "\u0421\u043a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0441\u0441\u044b\u043b\u043a\u0443 \u0434\u043b\u044f \u0440\u0430\u0431\u043e\u0442\u043e\u0434\u0430\u0442\u0435\u043b\u044f" });
-    share.addEventListener("click", function () {
-      var origin = location.protocol === "file:" ? "https://proof.dev" : location.origin;
-      var link = origin + "/candidate.html?protocol=" + encodeURIComponent(protocol.id || "demo");
-      if (navigator.clipboard) navigator.clipboard.writeText(link).then(function () { P.toast("\u0421\u0441\u044b\u043b\u043a\u0430 \u0441\u043a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u043d\u0430: \u043f\u0440\u043e\u0442\u043e\u043a\u043e\u043b \u043f\u0435\u0440\u0435\u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0435\u0442\u0441\u044f \u0432 \u0434\u0440\u0443\u0433\u0438\u0445 \u043a\u043e\u043c\u043f\u0430\u043d\u0438\u044f\u0445", "ok", 5200); });
-      else P.toast("\u0411\u0443\u0444\u0435\u0440 \u043e\u0431\u043c\u0435\u043d\u0430 \u043d\u0435\u0434\u043e\u0441\u0442\u0443\u043f\u0435\u043d", "warn");
-    });
-    var pdf = el("button", { class: "btn btn--ghost btn--sm", type: "button", text: "\u0421\u043a\u0430\u0447\u0430\u0442\u044c \u043f\u0440\u043e\u0442\u043e\u043a\u043e\u043b" });
-    pdf.addEventListener("click", function () {
-      if (!demo && protocol.id) { global.open("/api/protocol/" + encodeURIComponent(protocol.id) + ".pdf", "_blank"); return; }
-      var blob = new Blob([JSON.stringify(protocol, null, 2)], { type: "application/json" });
-      var link = el("a", { href: URL.createObjectURL(blob), download: "pruf-protocol.json" });
-      document.body.appendChild(link); link.click(); link.remove();
-      P.toast("\u0414\u0435\u043c\u043e-\u0440\u0435\u0436\u0438\u043c: \u0432\u044b\u0433\u0440\u0443\u0436\u0435\u043d JSON. PDF \u0441\u043e\u0431\u0438\u0440\u0430\u0435\u0442 \u0434\u0432\u0438\u0436\u043e\u043a.", "", 5000);
-    });
-    var again = el("a", { class: "btn btn--quiet btn--sm", href: "studio.html", text: "\u041f\u0440\u043e\u0432\u0435\u0440\u0438\u0442\u044c \u043d\u043e\u0432\u043e\u0435 \u0440\u0435\u0448\u0435\u043d\u0438\u0435" });
-    [share, pdf, again].forEach(function (node) { actions.appendChild(node); });
-    host.appendChild(actions);
+		P.gauge($("gauge"), Number(protocol.control_pct || 0))
+		var verdictEl = $("verdict")
+		verdictEl.className = "center small mt-16 mb-0 " + P.verdictClass(verdict.level)
+		verdictEl.textContent = verdict.label || "—"
+		$("threshold").textContent =
+			"порог допуска " + protocol.pass_threshold_pct + " % · " + (protocol.passed ? "пройден" : "не пройден")
 
-    if (demo) {
-      host.appendChild(el("p", { class: "muted", text: "\u0414\u0435\u043c\u043e-\u0441\u043d\u0438\u043c\u043e\u043a: \u043f\u0440\u043e\u0442\u043e\u043a\u043e\u043b \u0438\u0437 \u0440\u0435\u0430\u043b\u044c\u043d\u043e\u0433\u043e \u043f\u0440\u043e\u0433\u043e\u043d\u0430 \u0434\u0432\u0438\u0436\u043a\u0430, \u0437\u0430\u0444\u0438\u043a\u0441\u0438\u0440\u043e\u0432\u0430\u043d\u043d\u044b\u0439 \u0432 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0438." }));
-    }
-  }
+		$("skillsMeta").textContent = (protocol.skills || []).length + " навыков"
+		$("skills").innerHTML =
+			(protocol.skills || [])
+				.map(function (skill) {
+					return (
+						'<div class="cab-skill"><b>' +
+						esc(skill.title) +
+						'</b><span class="' +
+						P.verdictClass(skill.verdict) +
+						' tiny">' +
+						esc(skill.verdict_label) +
+						'</span><span class="cab-sub">' +
+						esc(skill.correct) +
+						" из " +
+						esc(skill.questions) +
+						" · " +
+						esc(skill.score_pct) +
+						" %</span>" +
+						bar(skill.score_pct) +
+						"</div>"
+					)
+				})
+				.join("") || '<p class="cab-empty mb-0">Нет данных</p>'
 
-  function renderHistory(rows) {
-    var host = $("#history");
-    if (!host) return;
-    host.innerHTML = "";
-    if (!rows.length) {
-      host.appendChild(el("p", { class: "muted", text: "\u041f\u043e\u043a\u0430 \u043e\u0434\u043d\u0430 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0430." }));
-      return;
-    }
-    var table = el("table", { class: "table" }, [el("thead", {}, [el("tr", {}, [
-      el("th", { text: "\u0414\u0430\u0442\u0430" }), el("th", { text: "\u0412\u0430\u043a\u0430\u043d\u0441\u0438\u044f" }),
-      el("th", { text: "\u041a\u043e\u043d\u0442\u0440\u043e\u043b\u044c" }), el("th", { text: "\u0421\u0442\u0430\u0442\u0443\u0441" })
-    ])])]);
-    var body = el("tbody");
-    rows.forEach(function (row) {
-      body.appendChild(el("tr", {}, [
-        el("td", { text: row.submitted || "" }),
-        el("td", { text: row.vacancy || "" }),
-        el("td", {}, [el("span", { class: "badge " + P.levelClass(row.level), text: (row.control_pct || 0) + " %" })]),
-        el("td", { text: row.status || "" })
-      ]));
-    });
-    table.appendChild(body);
-    host.appendChild(table);
-  }
+		$("risks").innerHTML =
+			(protocol.risks || [])
+				.map(function (risk) {
+					return (
+						'<div class="cab-risk' +
+						(String(risk.kind).indexOf("дыра") >= 0 ? " is-gap" : "") +
+						'"><span class="chip chip-amber">' +
+						esc(risk.kind) +
+						'</span> <span class="mono tiny dim">' +
+						esc(risk.mutation) +
+						" · строка " +
+						esc(risk.line) +
+						'</span><p class="small mb-0" style="margin-top:6px">' +
+						esc(risk.text) +
+						'</p><p class="tiny dim mb-0">' +
+						esc(risk.action) +
+						"</p></div>"
+					)
+				})
+				.join("") || '<p class="cab-empty mb-0">Пробелов не найдено — все мутации разобраны.</p>'
 
-  P.ready(function () {
-    if (!$("#my-protocol")) return;
-    var fresh = null;
-    try { fresh = JSON.parse(sessionStorage.getItem("pruf.lastProtocol") || "null"); } catch (error) { fresh = null; }
-    if (fresh) {
-      renderProtocol(fresh, fresh.__demo === true);
-      renderHistory([]);
-      return;
-    }
-    P.engine.protocol("last").then(function (protocol) {
-      renderProtocol(protocol, protocol.__demo === true);
-    }).catch(function () {
-      return P.demoData().then(function (data) { renderProtocol(data.protocol || {}, true); });
-    });
-    P.engine.candidates().then(function (payload) {
-      var rows = (payload.candidates || []).slice(0, 3);
-      renderHistory(rows);
-    }).catch(function () { renderHistory([]); });
-  });
-})(window);
+		var timeline = protocol.timeline || []
+		$("tlMeta").textContent = timeline.length + " вопросов"
+		$("timeline").innerHTML =
+			timeline
+				.map(function (item) {
+					return (
+						'<div class="cab-tl-item"><span class="cab-tl-dot' +
+						(item.correct ? "" : " is-miss") +
+						'"></span><span><span class="mono tiny dim">' +
+						esc(item.mutation) +
+						"</span> " +
+						esc(item.title) +
+						' <span class="cab-sub">· ' +
+						esc(item.result) +
+						"</span></span>" +
+						'<span class="cab-tl-time">' +
+						esc(item.clock) +
+						"</span></div>"
+					)
+				})
+				.join("") || '<p class="cab-empty mb-0">Сессия ещё не проводилась</p>'
+
+		$("meta").innerHTML =
+			"<dt>Задача</dt><dd>" +
+			esc((protocol.task || {}).title || candidate.task) +
+			"</dd><dt>Язык</dt><dd>" +
+			esc((protocol.task || {}).language || "Python") +
+			"</dd><dt>Строк кода</dt><dd>" +
+			esc((protocol.task || {}).lines) +
+			"</dd><dt>Мутации</dt><dd>" +
+			esc(mutation.total + " · выжило " + mutation.survived) +
+			"</dd><dt>Отпечаток</dt><dd>" +
+			esc(protocol.fingerprint) +
+			"</dd><dt>Протокол</dt><dd>" +
+			esc(protocol.id) +
+			"</dd>"
+
+		var quote = (protocol.quotes || [])[0]
+		var diff = quote && (quote.diff || quote.patch)
+		if (diff) $("quote").innerHTML = P.renderDiff(diff)
+		else {
+			var risk = (protocol.risks || [])[0]
+			$("quote").textContent = risk
+				? risk.mutation + " · строка " + risk.line + "\n" + risk.text
+				: "Выживших мутаций нет — набор тестов плотный."
+		}
+
+		renderHistory()
+	}
+
+	function renderHistory() {
+		var local = localSessions()
+		var rows = local
+			.map(function (item) {
+				return (
+					'<div class="cab-tl-item"><span class="cab-tl-dot"></span><span><b>' +
+					esc(item.task || "Своё решение") +
+					'</b> <span class="cab-sub">· контроль ' +
+					esc(item.control_pct) +
+					' %</span></span><span class="cab-tl-time">' +
+					esc(item.date || "") +
+					"</span></div>"
+				)
+			})
+			.join("")
+		var demo = S.rows
+			.map(function (row) {
+				return (
+					'<div class="cab-tl-item"><span class="cab-tl-dot' +
+					(row.passed ? "" : " is-miss") +
+					'"></span><span><button class="btn btn-quiet btn-sm" type="button" data-open="' +
+					P.escAttr(row.id) +
+					'">' +
+					esc(row.name) +
+					'</button> <span class="cab-sub">· ' +
+					esc(row.task) +
+					" · контроль " +
+					esc(row.control_pct) +
+					' %</span></span><span class="cab-tl-time">' +
+					esc(row.submitted) +
+					"</span></div>"
+				)
+			})
+			.join("")
+		$("history").innerHTML =
+			'<div class="cab-tl">' +
+			(rows || '<div class="cab-tl-item"><span class="cab-tl-dot is-miss"></span><span class="cab-sub">В этом браузере вы ещё не проходили сессию — начните со студии.</span><span></span></div>') +
+			demo +
+			"</div>"
+	}
+
+	function load(id) {
+		S.id = id
+		$("skills").innerHTML = '<p class="cab-empty mb-0">Грузим протокол…</p>'
+		P.api
+			.candidate(id)
+			.then(render)
+			.catch(function (error) {
+				$("skills").innerHTML = '<p class="cab-empty mb-0">' + esc(error.message) + "</p>"
+			})
+	}
+
+	function bind() {
+		$("whoSelect").addEventListener("change", function (event) {
+			load(event.target.value)
+		})
+		$("btnPdf").addEventListener("click", function () {
+			if (!S.bundle) return
+			window.open("/api/protocol/" + encodeURIComponent(S.bundle.protocol.id) + ".pdf", "_blank")
+		})
+		$("btnShare").addEventListener("click", function () {
+			P.copy(location.origin + "/candidate.html?id=" + encodeURIComponent(S.id))
+		})
+		$("btnSend").addEventListener("click", function () {
+			if (!S.bundle) return
+			P.api
+				.protocolSend(S.bundle.protocol.id, $("sendEmail").value.trim())
+				.then(function (data) {
+					P.modal("modal-send", false)
+					P.toast(data.message || "Протокол в очереди", "ok")
+				})
+				.catch(function (error) {
+					P.toast(error.message, "err")
+				})
+		})
+		document.addEventListener("click", function (event) {
+			var open = event.target.closest("[data-open]")
+			if (!open) return
+			var id = open.getAttribute("data-open")
+			$("whoSelect").value = id
+			load(id)
+			window.scrollTo({ top: 0, behavior: "smooth" })
+		})
+	}
+
+	function boot() {
+		bind()
+		P.api
+			.candidates()
+			.then(function (data) {
+				S.rows = data.candidates || []
+				$("whoSelect").innerHTML = S.rows
+					.map(function (row) {
+						return '<option value="' + P.escAttr(row.id) + '">' + esc(row.name + " · " + row.vacancy) + "</option>"
+					})
+					.join("")
+				var wanted = P.qs("id", "")
+				var row = S.rows.filter(function (item) {
+					return item.id === wanted
+				})[0] || S.rows[0]
+				if (!row) return
+				$("whoSelect").value = row.id
+				load(row.id)
+			})
+			.catch(function (error) {
+				$("skills").innerHTML = '<p class="cab-empty mb-0">' + esc(error.message) + "</p>"
+			})
+	}
+
+	if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot)
+	else boot()
+})()
