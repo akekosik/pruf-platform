@@ -3,15 +3,17 @@
 
 Запуск:  python3 -m unittest discover -s tests -v
 
-Проверяются три группы утверждений из документации:
-  1. Генератор мутаций детерминирован и всегда даёт компилируемый код.
-  2. Песочница изолирует чужой код и не виснет.
-  3. Протокол воспроизводим и не утекает правильными ответами.
+Проверяются четыре обещания из документации:
+  1. Каталог из 18 операторов — публичный контракт.
+  2. Генератор детерминирован и всегда даёт компилируемый код.
+  3. Песочница изолирует чужой код и не виснет.
+  4. Протокол воспроизводим, а правильные ответы не утекают до ответа кандидата.
 """
 
 import inspect
 import json
 import os
+import re
 import sys
 import unittest
 
@@ -55,6 +57,8 @@ def _field(item, *names):
     return None
 
 
+BROKEN = "def broken(:\n    pass\n"
+
 ORDERS = fixtures.get_task("orders")
 CODE = ORDERS["code"] if isinstance(ORDERS, dict) else None
 TESTS = None
@@ -78,7 +82,13 @@ class TestCatalog(unittest.TestCase):
 
     def test_every_operator_has_identity(self):
         for row in mutations.catalog():
-            self.assertTrue(_field(row, "id", "code", "operator", "name"))
+            self.assertTrue(_field(row, "code", "id", "operator", "name"))
+
+    def test_every_operator_declares_a_skill(self):
+        known = {"boundary", "logic", "arithmetic", "strings", "io", "errors", "collections", "flow"}
+        for row in mutations.catalog():
+            skill = _field(row, "skill")
+            self.assertIn(skill, known, "неизвестная ось навыков: %r" % (skill,))
 
     def test_limits_match_documentation(self):
         self.assertEqual(mutations.DEFAULT_LIMIT, 12)
@@ -99,8 +109,10 @@ class TestFingerprint(unittest.TestCase):
         int(value, 16)
 
     def test_sensitive_to_change(self):
-        other = CODE + "\nX = 1\n"
-        self.assertNotEqual(mutations.code_fingerprint(CODE), mutations.code_fingerprint(other))
+        self.assertNotEqual(
+            mutations.code_fingerprint(CODE),
+            mutations.code_fingerprint(CODE + "\nX = 1\n"),
+        )
 
 
 class TestGenerator(unittest.TestCase):
@@ -138,8 +150,10 @@ class TestGenerator(unittest.TestCase):
         second = [_mutant_source(x) for x in mutations.generate(CODE, 12)]
         self.assertEqual(first, second)
 
-    def test_broken_code_yields_nothing(self):
-        self.assertEqual(list(mutations.generate("def broken(:\n    pass\n", 5)), [])
+    def test_broken_code_raises_syntax_error(self):
+        """Невалидный код не маскируется: сервер обязан сначала звать syntax_check."""
+        with self.assertRaises(SyntaxError):
+            mutations.generate(BROKEN, 5)
 
 
 class TestAnalysis(unittest.TestCase):
@@ -148,7 +162,7 @@ class TestAnalysis(unittest.TestCase):
         self.assertIsNone(analysis.syntax_check(CODE))
 
     def test_syntax_check_reports_broken_code(self):
-        self.assertIsInstance(analysis.syntax_check("def broken(:\n    pass\n"), dict)
+        self.assertIsInstance(analysis.syntax_check(BROKEN), dict)
 
     def test_preview_returns_mutations(self):
         result = analysis.preview(CODE, 6)
@@ -182,18 +196,21 @@ class TestSandbox(unittest.TestCase):
     def test_reference_solution_passes(self):
         report = self._run(CODE, TESTS)
         self.assertIsInstance(report, dict)
-        failed = _field(report, "failed", "failures")
-        if isinstance(failed, int):
-            self.assertEqual(failed, 0, "эталонное решение должно проходить тесты")
+        self.assertEqual(report.get("failed"), 0, "эталонное решение должно проходить тесты")
+        self.assertGreater(report.get("passed", 0), 0)
 
     @unittest.skipIf(TESTS is None, "у фикстуры нет эталонных тестов")
     def test_broken_solution_is_detected(self):
+        """Заведомо сломанное решение не должно давать зелёный прогон."""
         report = self._run("def parse_orders(raw):\n    return None\n", TESTS)
         self.assertIsInstance(report, dict)
+        broke = (report.get("failed") or 0) + (report.get("errored") or 0)
+        self.assertGreater(broke, 0, "песочница обязана заметить сломанное решение")
 
     def test_infinite_loop_does_not_hang(self):
         report = self._run("x = 1\n", "while True:\n    pass\n", timeout=4.0)
         self.assertIsInstance(report, dict, "песочница обязана вернуть отчёт")
+        self.assertFalse(report.get("ok", False), "бесконечный цикл не может быть успешным прогоном")
 
     def test_network_import_is_blocked(self):
         report = self._run("x = 1\n", "import socket\n\ndef test_x():\n    assert socket\n", timeout=6.0)
@@ -205,6 +222,10 @@ class TestSandbox(unittest.TestCase):
         c = sandbox.run_key("a", "c", 10.0, 512, 5)
         self.assertEqual(a, b)
         self.assertNotEqual(a, c)
+
+    def test_cache_is_bounded(self):
+        self.assertEqual(sandbox.CACHE_LIMIT, 512)
+        self.assertLessEqual(sandbox.cache_size(), sandbox.CACHE_LIMIT)
 
 
 class TestSessionConstants(unittest.TestCase):
@@ -224,12 +245,17 @@ class TestSessionConstants(unittest.TestCase):
         for weight in session.QUESTION_WEIGHTS.values():
             self.assertGreater(weight, 0)
 
+    def test_gap_questions_weigh_most(self):
+        """Дыра в тестах — самый информативный вопрос."""
+        self.assertEqual(max(session.QUESTION_WEIGHTS, key=session.QUESTION_WEIGHTS.get), "gap")
+
     def test_trap_options_exist(self):
         self.assertIn("тест", session.NO_TEST_OPTION.lower())
         self.assertTrue(session.CRASH_OPTION)
 
-    def test_session_id_is_deterministic_per_salt(self):
-        self.assertEqual(session.new_session_id(CODE, "salt"), session.new_session_id(CODE, "salt"))
+    def test_session_id_has_expected_shape(self):
+        value = session.new_session_id(CODE, "salt")
+        self.assertRegex(value, r"^s-[0-9a-f]{12}$")
 
 
 class TestProtocolThresholds(unittest.TestCase):
@@ -273,8 +299,7 @@ class TestDemoPipeline(unittest.TestCase):
         self.assertEqual(proto.get("pass_threshold_pct"), protocol.PASS_CONTROL_PCT)
 
     def test_demo_skills_are_graded(self):
-        proto = self.demo.get("protocol") or {}
-        skills = proto.get("skills") or []
+        skills = (self.demo.get("protocol") or {}).get("skills") or []
         self.assertGreater(len(skills), 0)
         for row in skills:
             self.assertIn("score", row)
@@ -282,8 +307,7 @@ class TestDemoPipeline(unittest.TestCase):
             self.assertLessEqual(row["score"], 1.0)
 
     def test_demo_mutation_counts_add_up(self):
-        proto = self.demo.get("protocol") or {}
-        mut = proto.get("mutation") or {}
+        mut = (self.demo.get("protocol") or {}).get("mutation") or {}
         if not mut:
             self.skipTest("в демо нет блока mutation")
         self.assertEqual(mut.get("killed", 0) + mut.get("survived", 0), mut.get("total"))
@@ -308,17 +332,59 @@ class TestDemoPipeline(unittest.TestCase):
         self.assertIsInstance(text, str)
         self.assertGreater(len(text), 200, "текстовый протокол не должен быть пустым")
 
+    def test_protocol_text_mentions_fingerprint(self):
+        proto = self.demo.get("protocol") or {}
+        self.assertIn(str(proto.get("fingerprint")), protocol.render_text(proto))
+
 
 class TestAnswerLeakage(unittest.TestCase):
-    """Правильные ответы не должны покидать сервер до завершения сессии."""
+    """Правильные ответы не должны уходить клиенту до ответа на вопрос."""
 
-    def test_public_view_hides_correct_answers(self):
-        demo = fixtures.demo()
-        raw = demo.get("session")
-        if not isinstance(raw, dict):
+    @classmethod
+    def setUpClass(cls):
+        cls.raw = (fixtures.demo() or {}).get("session")
+
+    def setUp(self):
+        if not isinstance(self.raw, dict):
             self.skipTest("в демо нет объекта сессии")
-        blob = json.dumps(session.public_view(raw), ensure_ascii=False, default=str)
-        self.assertNotIn('"correct"', blob, "публичная проекция не должна содержать ответы")
+
+    def test_unanswered_questions_hide_correct_option(self):
+        fresh = dict(self.raw)
+        fresh["answers"] = {}
+        view = session.public_view(fresh)
+        questions = view.get("questions") or []
+        self.assertGreater(len(questions), 0)
+        for question in questions:
+            self.assertNotIn("correct", question, "правильный ответ утек до ответа кандидата")
+            self.assertNotIn("explanation", question, "разбор утёк до ответа кандидата")
+
+    def test_unanswered_view_has_no_correct_key_at_all(self):
+        fresh = dict(self.raw)
+        fresh["answers"] = {}
+        blob = json.dumps(session.public_view(fresh), ensure_ascii=False, default=str)
+        self.assertNotIn('"correct"', blob)
+
+    def test_answered_questions_reveal_explanation(self):
+        """После ответа разбор показывается — это и есть обучающая часть сессии."""
+        view = session.public_view(dict(self.raw))
+        answered = [q for q in (view.get("questions") or []) if q.get("answer")]
+        if not answered:
+            self.skipTest("в демо-сессии нет ответов")
+        for question in answered:
+            self.assertIn("correct", question)
+            self.assertIn("explanation", question)
+
+    def test_public_view_never_exposes_raw_answer_key_of_unanswered(self):
+        fresh = dict(self.raw)
+        fresh["answers"] = {}
+        for question in session.public_view(fresh).get("questions") or []:
+            self.assertIsNone(question.get("answer"))
+
+    def test_public_view_reports_progress(self):
+        view = session.public_view(dict(self.raw))
+        self.assertIn("answered", view)
+        self.assertIn("questions_total", view)
+        self.assertLessEqual(view["answered"], view["questions_total"])
 
 
 class TestEconomics(unittest.TestCase):
@@ -358,16 +424,63 @@ class TestFixtures(unittest.TestCase):
             compile(code, "<task>", "exec")
 
     def test_candidates_overview_has_rows(self):
-        data = fixtures.candidates_overview()
-        self.assertIsInstance(data, dict)
-        self.assertGreater(len(data.get("candidates") or []), 0)
+        rows = fixtures.candidates_overview()
+        self.assertIsInstance(rows, list)
+        self.assertGreater(len(rows), 0)
+
+    def test_every_candidate_row_has_control_and_verdict(self):
+        for row in fixtures.candidates_overview():
+            self.assertIn("control_pct", row)
+            self.assertIn("verdict", row)
+            self.assertGreaterEqual(row["control_pct"], 0)
+            self.assertLessEqual(row["control_pct"], 100)
+
+    def test_candidate_pass_flag_matches_threshold(self):
+        """Флаг допуска не должен расходиться с порогом из документации."""
+        for row in fixtures.candidates_overview():
+            if "passed" not in row:
+                continue
+            expected = row["control_pct"] >= protocol.PASS_CONTROL_PCT
+            self.assertEqual(bool(row["passed"]), expected, "кандидат %s" % row.get("id"))
 
     def test_candidate_bundle_is_complete(self):
-        rows = fixtures.candidates_overview().get("candidates") or []
-        bundle = fixtures.candidate_bundle(rows[0].get("id"))
+        rows = fixtures.candidates_overview()
+        bundle = fixtures.candidate_bundle(rows[0]["id"])
         self.assertIsInstance(bundle, dict)
-        for key in ("candidate", "protocol", "code"):
+        for key in ("candidate", "summary", "protocol", "code"):
             self.assertIn(key, bundle)
+
+    def test_candidate_bundle_code_compiles(self):
+        rows = fixtures.candidates_overview()
+        for row in rows:
+            bundle = fixtures.candidate_bundle(row["id"])
+            compile(bundle["code"], "<candidate>", "exec")
+
+    def test_unknown_candidate_returns_none(self):
+        self.assertIsNone(fixtures.candidate_bundle("c-нет-такого"))
+
+
+class TestDocumentationClaims(unittest.TestCase):
+    """Числа из documentation.md должны воспроизводиться кодом."""
+
+    def test_documentation_exists(self):
+        self.assertTrue(os.path.isfile(os.path.join(ROOT, "docs", "documentation.md")))
+
+    def test_documentation_mentions_moodle_early(self):
+        """«Moodle» обязан встретиться в первых абзацах в форме «встраиваемся, а не заменяем»."""
+        path = os.path.join(ROOT, "docs", "documentation.md")
+        with open(path, encoding="utf-8") as handle:
+            head = handle.read(4000)
+        self.assertIn("Moodle", head)
+        self.assertTrue(re.search(r"встраиваемся|не заменяем", head))
+
+    def test_documentation_lists_all_operators(self):
+        path = os.path.join(ROOT, "docs", "documentation.md")
+        with open(path, encoding="utf-8") as handle:
+            text = handle.read()
+        for row in mutations.catalog():
+            code = _field(row, "code", "id")
+            self.assertIn(code, text, "оператор %s не описан в документации" % code)
 
 
 if __name__ == "__main__":
