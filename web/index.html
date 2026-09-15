@@ -1,413 +1,356 @@
 <!doctype html>
 <html lang="ru">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>ПРУФ — допуск к коду, который нельзя списать</title>
-<meta name="description" content="ПРУФ — платформа верификации инженерных навыков: мутации кода кандидата, 15-минутная сессия защиты и протокол понимания без прокторинга и без LLM.">
-<link rel="stylesheet" href="css/app.css">
+<meta name="description" content="ПРУФ — платформа верификации инженерных навыков: мутации кода кандидата, 15-минутная сессия защиты и воспроизводимый протокол понимания. Без прокторинга и без LLM." />
+<link rel="stylesheet" href="/css/app.css" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23ff3b5c'/%3E%3Ctext x='16' y='22' font-family='monospace' font-size='16' font-weight='bold' text-anchor='middle' fill='%23140609'%3EP%3C/text%3E%3C/svg%3E" />
 </head>
 <body>
 
 <header class="nav">
-  <a class="brand" href="index.html"><span class="brand__slash">/</span> ПРУФ</a>
-  <nav class="nav__links">
-    <a href="index.html">Главная</a>
-    <a href="studio.html">Проверка кода</a>
-    <a href="session.html?demo=1">Сессия защиты</a>
-    <a href="employer.html">Кабинет работодателя</a>
-    <a href="candidate.html">Кабинет кандидата</a>
-  </nav>
-  <div class="nav__actions">
-    <span class="enginebar" data-engine-badge></span>
-    <button class="btn btn--sm" type="button" data-modal-open="lead">Запросить пилот</button>
-  </div>
+	<div class="container nav-inner">
+		<a class="logo" href="/index.html"><span class="logo-mark">P</span> ПРУФ</a>
+		<nav class="nav-links">
+			<a class="nav-link" href="/index.html">Главная</a>
+			<a class="nav-link" href="/studio.html">Проверка кода</a>
+			<a class="nav-link" href="/session.html?demo=1">Сессия защиты</a>
+			<a class="nav-link" href="/employer.html">Кабинет работодателя</a>
+			<a class="nav-link" href="/candidate.html">Кабинет кандидата</a>
+			<a class="nav-link" href="/docs.html">Документация</a>
+		</nav>
+		<a class="btn btn-primary btn-sm" href="/studio.html">Проверить свой код</a>
+		<button class="nav-burger" type="button" aria-label="Меню">≡</button>
+	</div>
 </header>
 
 <main>
 
+<!-- ------------------------------------------------------------------ hero -->
 <section class="hero">
-  <div class="hero__text">
-    <p class="hero__eyebrow reveal">Верификация инженерных навыков · без прокторинга · без LLM</p>
-    <h1 class="hero__title reveal" data-delay="80">Зелёные тесты больше не доказывают, что человек понимает код</h1>
-    <p class="hero__lead reveal" data-delay="160">ПРУФ берёт решение кандидата, разбирает его в AST, строит 9–15 мутаций именно этого кода, прогоняет тесты в изоляторе и ведёт 15-минутную сессию защиты. На выходе — протокол понимания, а не галочка «тесты прошли».</p>
-    <div class="row row--wrap reveal" data-delay="240">
-      <a class="btn btn--wide" href="studio.html">Проверить свой код</a>
-      <a class="btn btn--ghost" href="session.html?demo=1">Смотреть сессию защиты</a>
-      <a class="btn btn--quiet" href="employer.html">Кабинет работодателя</a>
-    </div>
-    <p class="hero__note reveal" data-delay="320">Всё считается локально: ни камеры, ни биометрии, ни внешних моделей. Работает в закрытом контуре без интернета.</p>
-  </div>
-  <div class="scene">
-    <canvas class="scene__canvas" id="scene" data-scene width="720" height="620" aria-hidden="true"></canvas>
-    <div class="scene__fallback" aria-hidden="true">
-      <div class="scene__cube">
-        <span class="f1"></span><span class="f2"></span><span class="f3"></span>
-        <span class="f4"></span><span class="f5"></span><span class="f6"></span>
-      </div>
-    </div>
-    <div class="scene__chip scene__chip--a">M03 · &lt; 3 → &lt;= 3 · тесты поймали</div>
-    <div class="scene__chip scene__chip--b">M11 · &gt; → &gt;= · прошла незамеченной</div>
-    <div class="scene__chip scene__chip--c">Контроль кода · 77 %</div>
-  </div>
+	<div class="container hero-grid">
+		<div class="hero-copy reveal">
+			<span class="badge mb-24"><span class="dot"></span> Без прокторинга · без камеры · без LLM</span>
+			<h1>Зелёные тесты больше не доказывают, <span class="grad-red">что человек понимает код</span></h1>
+			<p class="lead hero-sub">ПРУФ разбирает решение кандидата в AST, строит 9–15 мутаций именно этого кода и за 15 минут проверяет, что человек действительно контролирует то, что принёс. На выходе — протокол понимания, а не галочка «тесты прошли».</p>
+			<p class="muted hero-sub">Вердикт воспроизводим построчно и считается локально — без обращения к языковым моделям и без интернета. Для вузов и СПО — 0&nbsp;₽: мы не заменяем Moodle, а встраиваемся в него по LTI&nbsp;1.3 и закрываем дыру, которую LMS закрыть не может: она не отличает понимание от сданного задания.</p>
+			<div class="hero-cta">
+				<a class="btn btn-primary btn-lg" href="/studio.html">Проверить свой код →</a>
+				<a class="btn btn-ghost btn-lg" href="/session.html?demo=1">Посмотреть сессию защиты</a>
+			</div>
+			<div class="hero-pills">
+				<span class="chip chip-teal">Вердикт воспроизводим</span>
+				<span class="chip chip-blue">Работает офлайн</span>
+				<span class="chip">Себестоимость сессии ≈ <span id="pillCost">4&nbsp;₽</span></span>
+			</div>
+		</div>
+		<div class="hero-visual reveal reveal-d2">
+			<div class="gl-wrap">
+				<canvas class="gl-canvas" aria-hidden="true"></canvas>
+				<div class="gl-fallback" aria-hidden="true"><span></span><span></span><span></span></div>
+			</div>
+			<div class="hero-float hero-float-1"><span class="tiny dim">Мутаций выжило</span><b class="u-red" id="floatSurvived">—</b><span class="tiny dim">ни один тест не заметил</span></div>
+			<div class="hero-float hero-float-2"><span class="tiny dim">Контроль понимания</span><b class="u-teal" id="floatControl">—</b><span class="tiny dim">порог допуска 70 %</span></div>
+		</div>
+	</div>
 </section>
 
-<section class="section">
-  <div class="kpi reveal">
-    <div class="kpi__item">
-      <div class="kpi__value"><span data-count="38" data-suffix=" %">38 %</span></div>
-      <div class="kpi__label">кандидатов с признаками ИИ-подсказки в отборе</div>
-    </div>
-    <div class="kpi__item">
-      <div class="kpi__value"><span data-count="15" data-suffix=" мин">15 мин</span></div>
-      <div class="kpi__label">одна сессия защиты вместо 2–4 часов senior-инженера</div>
-    </div>
-    <div class="kpi__item">
-      <div class="kpi__value"><span data-count="1500" data-suffix=" ₽">1 500 ₽</span></div>
-      <div class="kpi__label">цена верифицированного кандидата</div>
-    </div>
-    <div class="kpi__item">
-      <div class="kpi__value"><span data-count="803" data-suffix="">803</span></div>
-      <div class="kpi__label">сессии в год до безубыточности — это 3–5 компаний</div>
-    </div>
-  </div>
+<!-- ------------------------------------------------------------ live demo -->
+<section class="section" id="live">
+	<div class="container">
+		<div class="section-head reveal">
+			<span class="eyebrow">Живое ядро</span>
+			<h2>Вот что видит платформа в решении</h2>
+			<p class="lead">Ниже — не картинка, а ответ движка на реальной задаче. Выберите мутацию справа — код слева покажет точную строку правки.</p>
+		</div>
+		<div class="grid grid-2 reveal reveal-d1" style="align-items:start">
+			<div class="code-window">
+				<div class="code-head">
+					<span class="code-dots"><i></i><i></i><i></i></span>
+					<span id="heroFile">solution.py</span>
+					<span class="flex-1"></span>
+					<span id="heroFingerprint" class="dim">—</span>
+				</div>
+				<div class="code-body" id="heroCode"><div class="code-line"><span class="lc dim">Загрузка решения…</span></div></div>
+				<div class="code-head" style="border-top:1px solid var(--line);border-bottom:0">
+					<button class="btn btn-sm btn-danger" id="btnBreak" type="button">Применить мутацию</button>
+					<button class="btn btn-sm btn-quiet" id="btnRestore" type="button">Вернуть оригинал</button>
+					<span class="flex-1"></span>
+					<a class="btn btn-sm btn-quiet" href="/studio.html">Открыть в студии</a>
+				</div>
+			</div>
+			<div class="stack">
+				<div class="mut-panel">
+					<div class="mut-panel-head">
+						<div><b>Каталог мутаций</b><div class="mut-sub" id="heroMutMeta">—</div></div>
+						<div class="row">
+							<span class="chip chip-teal" id="heroKilled">—</span>
+							<span class="chip chip-red" id="heroSurvived">—</span>
+						</div>
+					</div>
+					<div class="mut-list" id="heroMut"><div class="empty"><span class="spin"></span></div></div>
+				</div>
+				<div class="card card-pad-sm" id="heroDetail">
+					<div class="card-head"><h4 class="card-title" id="heroDetailTitle">Выберите мутацию</h4><span class="mut-status queued" id="heroDetailStatus">—</span></div>
+					<pre class="diff" id="heroDetailDiff">Справка по каждой правке: что меняется, чем опасно и какой тест должен был упасть.</pre>
+					<p class="small muted mt-16 mb-0" id="heroDetailNote"></p>
+				</div>
+			</div>
+		</div>
+	</div>
 </section>
 
+<!-- ---------------------------------------------------------------- stats -->
+<section class="section-sm">
+	<div class="container">
+		<div class="stat-strip reveal">
+			<div class="stat"><div class="stat-num"><span data-count="18">0</span></div><div class="stat-label">операторов мутаций в каталоге</div></div>
+			<div class="stat"><div class="stat-num"><span data-count="15">0</span> мин</div><div class="stat-label">длительность сессии защиты</div></div>
+			<div class="stat"><div class="stat-num"><span data-count="0">0</span> ₽</div><div class="stat-label">вызовов к LLM на одну сессию</div></div>
+			<div class="stat"><div class="stat-num"><span data-count="100">0</span> %</div><div class="stat-label">воспроизводимость вердикта</div></div>
+		</div>
+	</div>
+</section>
+
+<!-- ------------------------------------------------------------ how it works -->
 <section class="section" id="how">
-  <h2 class="section__title reveal">Как это работает</h2>
-  <p class="section__lead reveal" data-delay="60">Четыре шага, каждый из них детерминирован и воспроизводим — любой спор разбирается пересчётом того же набора мутаций.</p>
-  <div class="grid grid--4">
-    <article class="card card--tilt reveal" data-delay="0">
-      <span class="card__step">01</span>
-      <h3>Прислал решение</h3>
-      <p>Тестовое задание, учебный проект или кусок рабочего кода вместе с своими тестами.</p>
-    </article>
-    <article class="card card--tilt reveal" data-delay="90">
-      <span class="card__step">02</span>
-      <h3>AST и мутации</h3>
-      <p>18 операторов по восьми навыкам строят правки с проверкой компиляции и без дублей.</p>
-    </article>
-    <article class="card card--tilt reveal" data-delay="180">
-      <span class="card__step">03</span>
-      <h3>Тесты в изоляторе</h3>
-      <p>Отдельный процесс без сети, с лимитами по CPU, памяти и размеру файлов.</p>
-    </article>
-    <article class="card card--tilt reveal" data-delay="270">
-      <span class="card__step">04</span>
-      <h3>Сессия и протокол</h3>
-      <p>Вопросы из конкретных строк живут 15 минут. На выходе — карта пробелов и PDF.</p>
-    </article>
-  </div>
+	<div class="container">
+		<div class="section-head is-center reveal">
+			<span class="eyebrow">Как это работает</span>
+			<h2>Четыре шага от решения до протокола</h2>
+			<p class="lead">Кандидат тратит 15 минут, работодатель — ни одного часа senior-инженера.</p>
+		</div>
+		<div class="steps">
+			<div class="step reveal"><div class="step-num">01</div><h4>Решение и тесты</h4><p>Кандидат присылает тестовое задание или кусок рабочего кода. Никакой регистрации с камерой и согласий на биометрию.</p></div>
+			<div class="step reveal reveal-d1"><div class="step-num">02</div><h4>Разбор в AST</h4><p>Движок находит места для правки и строит 9–15 мутаций по 18 операторам — только те, что компилируются.</p></div>
+			<div class="step reveal reveal-d2"><div class="step-num">03</div><h4>Прогон в песочнице</h4><p>Каждый мутант запускается в изолированном процессе с лимитами CPU и памяти. Выжившие правки — дыры в тестах.</p></div>
+			<div class="step reveal reveal-d3"><div class="step-num">04</div><h4>Защита и протокол</h4><p>15 минут вопросов из конкретных строк — и протокол: что человек контролирует, а где за него написал ассистент.</p></div>
+		</div>
+	</div>
 </section>
 
+<!-- -------------------------------------------------------------- try it -->
 <section class="section" id="try">
-  <div class="grid grid--sidebar">
-    <div class="reveal">
-      <h2 class="section__title">Попробуйте на примере</h2>
-      <p class="section__lead">Ниже — реальный фрагмент решения. Нажмите «Сломать» — движок разберёт код и покажет, какие правки можно внести и что каждая из них сломает.</p>
-      <pre class="editor editor--static"><code id="try-code">def parse_orders(raw):
-    orders = []
-    for line in raw.strip().splitlines():
-        parts = line.split(";")
-        if len(parts) &lt; 3:
-            continue
-        name = parts[0].strip()
-        try:
-            qty = int(parts[1])
-            price = float(parts[2])
-        except ValueError:
-            raise ValueError("плохая строка")
-        orders.append({"name": name, "qty": qty, "price": price})
-    return orders</code></pre>
-      <div class="row row--wrap">
-        <button class="btn" type="button" id="try-break">Сломать</button>
-        <a class="btn btn--ghost" href="studio.html">Открыть в студии и писать свой код</a>
-      </div>
-      <p class="muted" id="try-note">Запустите <code>python3 -m engine.cli serve</code> — и мутации будут строиться на живом движке для любого вашего кода.</p>
-    </div>
-    <div class="card card--accent reveal" data-delay="120">
-      <h3>Мутации этого решения</h3>
-      <div id="try-mutations" class="mutlist">
-        <p class="muted">Нажмите «Сломать», чтобы увидеть список правок.</p>
-      </div>
-    </div>
-  </div>
+	<div class="container">
+		<div class="section-head reveal">
+			<span class="eyebrow">Попробуйте сами</span>
+			<h2>Какая правка пройдёт незамеченной?</h2>
+			<p class="lead">Три правки в одном и том же решении. Две уронят тесты, одна пройдёт тихо. Именно на таких вопросах строится сессия защиты.</p>
+		</div>
+		<div class="try-grid reveal reveal-d1">
+			<div class="code-window">
+				<div class="code-head"><span class="code-dots"><i></i><i></i><i></i></span><span>фрагмент решения</span></div>
+				<div class="code-body" id="tryCode"><div class="code-line"><span class="lc dim">…</span></div></div>
+			</div>
+			<div class="card">
+				<h4 id="tryPrompt">Какая из правок не уронит ни один тест?</h4>
+				<p class="small muted">Нажмите вариант — ответ проверяется по реальному прогону тестов по этому мутанту.</p>
+				<div class="try-options" id="tryOptions"><div class="empty"><span class="spin"></span></div></div>
+				<div class="try-result hidden" id="tryResult"></div>
+				<div class="row mt-16">
+					<button class="btn btn-sm btn-quiet" id="tryReset" type="button">Другие правки</button>
+					<a class="btn btn-sm btn-teal" href="/session.html?demo=1">Пройти полную сессию</a>
+				</div>
+			</div>
+		</div>
+	</div>
 </section>
 
-<section class="section" id="audience">
-  <h2 class="section__title reveal">Три аудитории</h2>
-  <div class="grid grid--3">
-    <article class="card card--tilt reveal">
-      <h3>HR и рекрутер</h3>
-      <p>Отправьте ссылку кандидату и получите протокол до технического интервью. Фильтр снимает до 70 % бесполезных собеседований.</p>
-      <a class="btn btn--sm btn--quiet" href="employer.html">Открыть кабинет</a>
-    </article>
-    <article class="card card--tilt reveal" data-delay="90">
-      <h3>Тимлид</h3>
-      <p>Смотрите не «задача сдана», а карту навыков: границы, ошибки, строки, коллекции — и цитаты из кода кандидата.</p>
-      <a class="btn btn--sm btn--quiet" href="studio.html">Построить проверку</a>
-    </article>
-    <article class="card card--tilt reveal" data-delay="180">
-      <h3>Кандидат</h3>
-      <p>15 минут без камеры. Протокол остаётся у вас и переиспользуется в других компаниях — одна проверка бесплатно.</p>
-      <a class="btn btn--sm btn--quiet" href="candidate.html">Мой протокол</a>
-    </article>
-  </div>
+<!-- ---------------------------------------------------------- why unbeatable -->
+<section class="section">
+	<div class="container">
+		<div class="section-head reveal">
+			<span class="eyebrow">Защита от подсказки</span>
+			<h2>Почему это нельзя обойти ассистентом</h2>
+			<p class="lead">Все существующие проверки ловят результат, а результат генерируется за три секунды. Мы проверяем авторство понимания.</p>
+		</div>
+		<div class="grid grid-3">
+			<div class="card card-hover card-glow reveal"><div class="card-ico">📍</div><h3>Вопросы из ваших строк</h3><p class="muted mb-0">Нет банка вопросов, который можно слить. Вопрос существует только для отпечатка конкретного решения.</p></div>
+			<div class="card card-hover card-glow reveal reveal-d1"><div class="card-ico">⏱</div><h3>Живут 15 минут</h3><p class="muted mb-0">Чтобы списать, внешней модели нужно получить код, тесты и мутации — и ответить быстрее человека под таймером.</p></div>
+			<div class="card card-hover card-glow reveal reveal-d2"><div class="card-ico">🔒</div><h3>Без сети и без LLM</h3><p class="muted mb-0">Всё считается детерминированно внутри периметра — единственный способ зайти в закрытый контур.</p></div>
+		</div>
+	</div>
 </section>
 
+<!-- ------------------------------------------------------------- audiences -->
+<section class="section">
+	<div class="container">
+		<div class="section-head reveal"><span class="eyebrow">Кому это нужно</span><h2>Три роли, три разных ответа</h2></div>
+		<div class="grid grid-3">
+			<div class="aud-card reveal" style="--accent:#ff3b5c">
+				<span class="chip chip-red">HR и рекрутер</span>
+				<h3 class="mt-16">Фильтр перед техсобесом</h3>
+				<p class="muted mb-0">Перестать тратить часы инженеров на кандидатов, чьё тестовое задание написал ассистент.</p>
+				<ul><li>Ссылка кандидату в один клик</li><li>Сравнение протоколов двух людей</li><li>Выгрузка в CSV и вебхук в HR-систему</li></ul>
+			</div>
+			<div class="aud-card reveal reveal-d1" style="--accent:#4c9dff">
+				<span class="chip chip-blue">Тимлид</span>
+				<h3 class="mt-16">Карта пробелов до выхода на проект</h3>
+				<p class="muted mb-0">Видно не «сдал — не сдал», а какие именно навыки человек держит под контролем.</p>
+				<ul><li>8 навыков: границы, логика, ошибки, коллекции…</li><li>Оценка самого набора тестов</li><li>План наставничества на первый месяц</li></ul>
+			</div>
+			<div class="aud-card reveal reveal-d2" style="--accent:#2de0a5">
+				<span class="chip chip-teal">Кандидат</span>
+				<h3 class="mt-16">Протокол остаётся у вас</h3>
+				<p class="muted mb-0">15 минут вместо четырёх этапов собеседований — и результат переиспользуется в других компаниях.</p>
+				<ul><li>Без камеры и записи экрана</li><li>Понятно, что подтянуть</li><li>PDF и публичная ссылка на протокол</li></ul>
+			</div>
+		</div>
+	</div>
+</section>
+
+<!-- -------------------------------------------------------------- protocol -->
 <section class="section" id="protocol">
-  <div class="grid grid--sidebar">
-    <div class="card reveal">
-      <h2>Протокол понимания</h2>
-      <p class="muted">Пример из реального прогона движка: 13 мутаций, 8 поймано тестами, 5 прошли незамеченными.</p>
-      <table class="table">
-        <thead><tr><th>Навык</th><th>Вопросы</th><th>Вердикт</th></tr></thead>
-        <tbody>
-          <tr><td>Границы и индексы</td><td>4</td><td><span class="badge badge--ok">Контролирует</span></td></tr>
-          <tr><td>Арифметика и накопление</td><td>3</td><td><span class="badge badge--ok">Контролирует</span></td></tr>
-          <tr><td>Работа со строками</td><td>3</td><td><span class="badge badge--bad">Не контролирует</span></td></tr>
-          <tr><td>Обработка ошибок</td><td>2</td><td><span class="badge badge--warn">Шатко</span></td></tr>
-          <tr><td>Поток выполнения</td><td>1</td><td><span class="badge badge--ok">Контролирует</span></td></tr>
-        </tbody>
-      </table>
-      <a class="btn btn--sm" href="session.html?demo=1">Посмотреть, как собирается протокол</a>
-    </div>
-    <div class="card card--flat reveal" data-delay="120">
-      <h3>Что внутри</h3>
-      <ul class="list">
-        <li>Процент контроля кода и порог допуска 70 %</li>
-        <li>Цитаты мутаций, которые кандидат не заметил</li>
-        <li>Риски для работодателя отдельным блоком</li>
-        <li>Таймлайн сессии с временем на каждый вопрос</li>
-        <li>Отметка воспроизводимости: те же мутации можно пересчитать</li>
-      </ul>
-    </div>
-  </div>
+	<div class="container">
+		<div class="section-head reveal">
+			<span class="eyebrow">Протокол понимания</span>
+			<h2>Вместо «зелёных тестов» — доказательство построчно</h2>
+			<p class="lead">Реальный протокол из демо-сессии: любой спор разбирается пересчётом того же набора мутаций.</p>
+		</div>
+		<div class="panel-grid reveal reveal-d1">
+			<div class="table-wrap">
+				<table class="t">
+					<thead><tr><th>Навык</th><th>Вопросов</th><th>Верно</th><th>Уровень</th><th>Вердикт</th></tr></thead>
+					<tbody id="protoSkills"><tr><td colspan="5" class="empty"><span class="spin"></span></td></tr></tbody>
+				</table>
+			</div>
+			<div class="stack">
+				<div class="card">
+					<div class="gauge" id="protoGauge">
+						<svg width="148" height="148" viewBox="0 0 148 148"><circle class="gauge-c gauge-bg" cx="74" cy="74" r="62"></circle><circle class="gauge-c gauge-fg" cx="74" cy="74" r="62"></circle></svg>
+						<div class="gauge-val"><div><b>0</b><span>контроль понимания</span></div></div>
+					</div>
+					<p class="center small muted mt-16 mb-0" id="protoVerdict">—</p>
+				</div>
+				<div class="quote" id="protoQuote"><span class="dim small">Цитата мутации загружается…</span></div>
+				<div class="card card-pad-sm">
+					<h4 class="card-title mb-16">Хронология ответов</h4>
+					<div class="timeline" id="protoTimeline"></div>
+					<div class="row mt-16">
+						<a class="btn btn-sm btn-teal" id="protoPdf" href="#" target="_blank" rel="noopener">Скачать PDF</a>
+						<a class="btn btn-sm btn-quiet" id="protoTxt" href="#" target="_blank" rel="noopener">Текстовая версия</a>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
 </section>
 
-<section class="section" id="vs">
-  <h2 class="section__title reveal">Чем отличаемся</h2>
-  <div class="reveal" data-delay="60">
-  <table class="table">
-    <thead><tr><th>Решение</th><th>Что делает</th><th>Где ломается</th></tr></thead>
-    <tbody>
-      <tr><td>HackerRank, CodeSignal, Яндекс Контест</td><td>Автопроверка задач</td><td>Задачу решает ассистент, зелёные тесты ничего не доказывают</td></tr>
-      <tr><td>Прокторинг (Экзамус, ProctorEdu)</td><td>Следит за человеком через камеру</td><td>Ловит поведение, требует биометрии, не работает в закрытом контуре</td></tr>
-      <tr><td>Аутсорс технических интервью</td><td>Живой инженер проводит собес</td><td>Дорого, не масштабируется, вердикт невоспроизводим</td></tr>
-      <tr><td>ИИ-интервьюеры</td><td>Генеративная беседа с кандидатом</td><td>Стоимость растёт с объёмом, апелляцию не разобрать</td></tr>
-      <tr><td><b>ПРУФ</b></td><td>Мутации собственного кода кандидата</td><td>Вердикт воспроизводим построчно, работает офлайн и без LLM</td></tr>
-    </tbody>
-  </table>
-  </div>
-  <p class="muted reveal" data-delay="120">Обзор смежного рынка систем проверки кандидатов: <a href="https://soware.ru/categories/position-candidate-background-check-systems" target="_blank" rel="noopener">soware.ru</a>. Важно: там собраны системы проверки биографии и благонадёжности, а ПРУФ проверяет инженерное понимание — это разные полки в одном бюджете HR.</p>
+<!-- ------------------------------------------------------------ comparison -->
+<section class="section">
+	<div class="container">
+		<div class="section-head reveal"><span class="eyebrow">Рынок</span><h2>Где ломаются существующие проверки</h2></div>
+		<div class="table-wrap reveal reveal-d1">
+			<table class="t">
+				<thead><tr><th>Решение</th><th>Что делает</th><th>Где ломается</th></tr></thead>
+				<tbody>
+					<tr><td><b>HackerRank, CodeSignal, Яндекс Контест</b></td><td class="muted">Автопроверка задач</td><td class="muted">Задачу решает ассистент; «зелёные тесты» больше не сигнал</td></tr>
+					<tr><td><b>Прокторинг (Экзамус, ProctorEdu)</b></td><td class="muted">Следит через камеру и экран</td><td class="muted">Ловит поведение, а не понимание; биометрия и согласия; не для закрытого контура</td></tr>
+					<tr><td><b>Аутсорс технических интервью</b></td><td class="muted">Живой инженер проводит собес</td><td class="muted">Порядка 300&nbsp;$ за интервью, не масштабируется, нет воспроизводимости при споре</td></tr>
+					<tr><td><b>ИИ-интервьюеры</b></td><td class="muted">Генеративная беседа с кандидатом</td><td class="muted">Стоимость растёт линейно, вердикт невоспроизводим, апелляцию не разобрать</td></tr>
+					<tr style="background:rgba(45,224,165,.07)"><td><b class="u-teal">ПРУФ</b></td><td>Мутации собственного кода кандидата</td><td>Себестоимость проверки ≈ 0&nbsp;₽, вердикт воспроизводим построчно, работает офлайн</td></tr>
+				</tbody>
+			</table>
+		</div>
+		<p class="small dim mt-16">Два аргумента, которых нет ни у кого: воспроизводимость вердикта и работа без интернета и без языковых моделей.</p>
+	</div>
 </section>
 
+<!-- ------------------------------------------------------------- who pays -->
+<section class="section" id="payers">
+	<div class="container">
+		<div class="section-head reveal"><span class="eyebrow">Кто платит в первый год</span><h2>Три сегмента с бюджетом и коротким циклом сделки</h2><p class="lead">В B2B нет закупочного цикла на учебный год: договор на пилот подписывается за две недели.</p></div>
+		<div class="grid grid-3">
+			<div class="card card-hover card-glow reveal">
+				<span class="chip chip-red">50–500 человек</span>
+				<h3 class="mt-16">ИТ-компании</h3>
+				<p class="muted">Домашние задания перестали быть сигналом: порядка 38&nbsp;% кандидатов идут с признаками ИИ-подсказки, в разработке — около половины.</p>
+				<p class="mb-0"><b>Платят за:</b> <span class="muted">1&nbsp;500&nbsp;₽ за верифицированного кандидата вместо 2–4 часов senior-инженера.</span></p>
+			</div>
+			<div class="card card-hover card-glow reveal reveal-d1">
+				<span class="chip chip-blue">30–100 стажёров</span>
+				<h3 class="mt-16">Стажировки и целевой набор</h3>
+				<p class="muted">Реальный уровень стажёра виден на третий месяц, когда бюджет наставника уже потрачен.</p>
+				<p class="mb-0"><b>Платят за:</b> <span class="muted">пакет верификаций и карту пробелов по каждому стажёру до выхода на проект.</span></p>
+			</div>
+			<div class="card card-hover card-glow reveal reveal-d2">
+				<span class="chip chip-amber">Закрытый контур</span>
+				<h3 class="mt-16">ОПК, судостроение, БПЛА</h3>
+				<p class="muted">Облачные тренажёры и внешние LLM запрещены, а людей надо допускать к работам.</p>
+				<p class="mb-0"><b>Платят за:</b> <span class="muted">on-premise лицензию — всё считается локально, без интернета и вызовов моделей.</span></p>
+			</div>
+		</div>
+		<div class="card mt-24 reveal" style="border-color:rgba(45,224,165,.3)">
+			<div class="row-between">
+				<div style="max-width:720px">
+					<h3 class="mb-8">Вузы и СПО — 0&nbsp;₽, навсегда</h3>
+					<p class="muted mb-0">Вуз не платит: он поставщик трафика и данных для калибровки сложности. Запуск из курса Moodle по LTI&nbsp;1.3 Advantage, оценка уходит в журнал через AGS, состав группы подтягивается через NRPS. Внедрение — приказом по кафедре, а не закупкой.</p>
+				</div>
+				<a class="btn btn-ghost" href="/docs.html#lti">Как работает LTI-трек</a>
+			</div>
+		</div>
+	</div>
+</section>
+
+<!-- --------------------------------------------------------------- pricing -->
 <section class="section" id="pricing">
-  <h2 class="section__title reveal">Тарифы</h2>
-  <p class="section__lead reveal" data-delay="60">Переменная себестоимость сессии — процессорное время контейнера, единицы рублей. Все цифры ниже считаются модулем <code>engine/economics.py</code>.</p>
-  <div class="grid grid--4" id="prices">
-    <article class="card price reveal">
-      <h3>Кандидат</h3>
-      <p class="price__value">0 ₽</p>
-      <ul class="list">
-        <li>Одна проверка бесплатно</li>
-        <li>Протокол остаётся у вас</li>
-        <li>Переиспользуется в других компаниях</li>
-      </ul>
-      <a class="btn btn--sm btn--quiet" href="studio.html">Начать</a>
-    </article>
-    <article class="card price price--accent reveal" data-delay="90">
-      <h3>Верификация</h3>
-      <p class="price__value" id="price-verification">1 500 ₽</p>
-      <ul class="list">
-        <li>За сессию с протоколом</li>
-        <li>Вместо 2–4 часов senior-инженера</li>
-        <li>PDF и вебхук в HR-систему</li>
-      </ul>
-      <button class="btn btn--sm" type="button" data-modal-open="lead">Заказать пилот</button>
-    </article>
-    <article class="card price reveal" data-delay="180">
-      <h3>Подписка компании</h3>
-      <p class="price__value" id="price-subscription">от 90 000 ₽/год</p>
-      <ul class="list">
-        <li>Пакет 100–300 верификаций</li>
-        <li>Карта пробелов по команде</li>
-        <li>Вакансии и сравнение протоколов</li>
-      </ul>
-      <button class="btn btn--sm btn--quiet" type="button" data-modal-open="lead">Обсудить</button>
-    </article>
-    <article class="card price reveal" data-delay="270">
-      <h3>Закрытый контур</h3>
-      <p class="price__value" id="price-onprem">от 400 000 ₽/год</p>
-      <ul class="list">
-        <li>On-premise без интернета</li>
-        <li>Ни одного вызова внешних моделей</li>
-        <li>Исходники отчётов заказчику</li>
-      </ul>
-      <button class="btn btn--sm btn--quiet" type="button" data-modal-open="lead">Запросить условия</button>
-    </article>
-  </div>
-  <div class="kpi reveal" data-delay="120" id="econ">
-    <div class="kpi__item"><div class="kpi__value" id="econ-margin">1 496 ₽</div><div class="kpi__label">маржа с одной сессии</div></div>
-    <div class="kpi__item"><div class="kpi__value" id="econ-saving">3 500 ₽</div><div class="kpi__label">экономия клиента против ручной проверки</div></div>
-    <div class="kpi__item"><div class="kpi__value" id="econ-breakeven">803</div><div class="kpi__label">сессий до безубыточности</div></div>
-    <div class="kpi__item"><div class="kpi__value" id="econ-companies">4</div><div class="kpi__label">активные компании для выхода в ноль</div></div>
-  </div>
+	<div class="container">
+		<div class="section-head is-center reveal"><span class="eyebrow">Тарифы</span><h2>Платит тот, кому нужно доказательство</h2><p class="lead" id="priceIntro">Безубыточность — около 800–900 верификаций в год, то есть 3–5 активных компаний.</p></div>
+		<div class="grid grid-4">
+			<div class="price-card reveal">
+				<span class="chip chip-teal">Кандидат</span>
+				<div class="price-value">0&nbsp;₽</div>
+				<p class="small dim">всегда бесплатно</p>
+				<ul class="price-list"><li>Сессия защиты 15 минут</li><li>Протокол остаётся у вас</li><li>Переиспользование в других компаниях</li></ul>
+				<a class="btn btn-ghost btn-block" href="/studio.html">Проверить код</a>
+			</div>
+			<div class="price-card is-featured reveal reveal-d1">
+				<span class="price-tag">основной</span>
+				<span class="chip chip-red">Работодатель</span>
+				<div class="price-value" id="priceVerification">1&nbsp;200–1&nbsp;800&nbsp;₽</div>
+				<p class="small dim">за верифицированного кандидата</p>
+				<ul class="price-list"><li>Протокол понимания и PDF</li><li>Карта пробелов по 8 навыкам</li><li>Сравнение кандидатов</li><li id="priceSaving">Дешевле ручной проверки на 70&nbsp;%</li></ul>
+				<a class="btn btn-primary btn-block" href="#lead">Запросить пилот</a>
+			</div>
+			<div class="price-card reveal reveal-d2">
+				<span class="chip chip-blue">Подписка</span>
+				<div class="price-value" id="priceSub">90–250 тыс.&nbsp;₽</div>
+				<p class="small dim">в год за контур компании</p>
+				<ul class="price-list"><li>Пакет 100–300 верификаций</li><li>Кабинет, вакансии, роли</li><li>Вебхук в HR и выгрузка CSV</li></ul>
+				<a class="btn btn-ghost btn-block" href="#lead">Обсудить подписку</a>
+			</div>
+			<div class="price-card reveal reveal-d3">
+				<span class="chip chip-amber">On-premise</span>
+				<div class="price-value" id="priceOnprem">400–900 тыс.&nbsp;₽</div>
+				<p class="small dim">в год, закрытый контур</p>
+				<ul class="price-list"><li>Установка внутри периметра</li><li>Без интернета и без LLM</li><li>Исходники отчётов заказчику</li></ul>
+				<a class="btn btn-ghost btn-block" href="#lead">Запросить установку</a>
+			</div>
+		</div>
+		<p class="small dim mt-16" id="priceUnit">Переменная себестоимость сессии — процессорное время контейнера, то есть единицы рублей.</p>
+	</div>
 </section>
 
+<!-- ------------------------------------------------------------------- faq -->
 <section class="section" id="faq">
-  <h2 class="section__title reveal">Вопросы, которые задают чаще всего</h2>
-  <div class="faq reveal" data-delay="60">
-    <details><summary>Кандидат может списать ответы у ИИ?</summary><p>Вопросы строятся из конкретных строк его же решения и живут 15 минут. Чтобы ответить чужой модели, нужно передать ей код, тесты, все мутации и успеть быстрее таймера.</p></details>
-    <details><summary>Нужна ли камера или биометрия?</summary><p>Нет. Проверяется содержание, а не поведение. Это дешевле прокторинга и чище юридически: персональные данные сводятся к имени и решению.</p></details>
-    <details><summary>Работает ли без интернета?</summary><p>Да. Ядро — стандартная библиотека Python без внешних зависимостей и без сетевых вызовов. Именно это открывает закрытые контуры.</p></details>
-    <details><summary>Как разбирать апелляцию?</summary><p>В протоколе есть отпечаток решения и список мутаций. Запустите <code>python3 -m engine.cli analyze</code> — вы получите те же цифры.</p></details>
-    <details><summary>А если у нас уже есть техсобес?</summary><p>ПРУФ не заменяет собес, а ставится перед ним как фильтр: собес начинается с карты пробелов, а не с нуля.</p></details>
-    <details><summary>А вузы?</summary><p>Бесплатно и через LTI 1.3: запуск из курса Moodle, оценка уходит в журнал. Вуз — канал и источник данных, а не плательщик.</p></details>
-  </div>
+	<div class="container" style="max-width:900px">
+		<div class="section-head is-center reveal"><span class="eyebrow">Вопросы</span><h2>Часто спрашивают</h2></div>
+		<div class="faq reveal reveal-d1">
+			<div class="faq-item"><button class="faq-q" type="button">Это прокторинг? Нужна камера?<span class="mark">+</span></button><div class="faq-a"><div>Нет. Ни камеры, ни записи экрана, ни биометрии и согласий на обработку биометрических данных. Проверяется содержание ответов о своём же коде, а не поведение человека. Это дешевле и юридически чище.</div></div></div>
+			<div class="faq-item"><button class="faq-q" type="button">А если кандидат откроет ассистента в соседнем окне?<span class="mark">+</span></button><div class="faq-a"><div>Чтобы получить ответ, модели нужно передать всё сразу: код, набор тестов, конкретную мутацию и варианты — и уложиться в таймер. Вопросы привязаны к отпечатку решения и живут 15 минут, так что заранее подготовиться невозможно.</div></div></div>
+			<div class="faq-item"><button class="faq-q" type="button">Почему не взять обычный техсобес?<span class="mark">+</span></button><div class="faq-a"><div>ПРУФ не замена собеседования, а фильтр перед ним. Цель — убрать бесполезные интервью и освободить время senior-инженеров для тех, кто действительно понимает свой код.</div></div></div>
+			<div class="faq-item"><button class="faq-q" type="button">Как разбирать спорный вердикт?<span class="mark">+</span></button><div class="faq-a"><div>Протокол содержит отпечаток решения и список мутаций с номерами строк. Те же входы дают те же мутации и тот же вердикт — спор разбирается пересчётом, а не обсуждением мнений.</div></div></div>
+			<div class="faq-item"><button class="faq-q" type="button">А другие языки, не только Python?<span class="mark">+</span></button><div class="faq-a"><div>Ядро не знает про язык: операторы описаны через узлы разбора и координаты текста. В прототипе работает Python; второй стек (JS или Java) — восьмая неделя плана, для языков без полного AST используются текстовые шаблоны с обязательной проверкой компиляции.</div></div></div>
+			<div class="faq-item"><button class="faq-q" type="button">Что с данными и закрытым контуром?<span class="mark">+</span></button><div class="faq-a"><div>Прототип работает полностью локально: ни одного исходящего запроса, ни одной внешней зависимости, никаких CDN. Данные лежат в файлах рядом с процессом, поэтому установка внутри периметра не требует доработок.</div></div></div>
+		</div>
+	</div>
 </section>
 
-<section class="section section--cta reveal">
-  <div class="card card--accent">
-    <h2>Два пилота и один закрытый контур — план на 12 недель</h2>
-    <p>Прототип работает уже сейчас: движок мутаций, изолятор, сессия защиты и протокол. Напишите — подберём сценарий под ваши вакансии.</p>
-    <div class="row row--wrap">
-      <button class="btn" type="button" data-modal-open="lead">Запросить пилот</button>
-      <a class="btn btn--ghost" href="https://github.com/akekosik/pruf-platform" target="_blank" rel="noopener">Исходный код и документация</a>
-    </div>
-  </div>
-</section>
-
-</main>
-
-<footer class="footer">
-  <div>
-    <p class="brand"><span class="brand__slash">/</span> ПРУФ</p>
-    <p class="muted">Допуск к коду, который нельзя списать. Детерминированно, офлайн, без LLM.</p>
-  </div>
-  <div class="footer__links">
-    <a href="studio.html">Проверка кода</a>
-    <a href="session.html?demo=1">Сессия защиты</a>
-    <a href="employer.html">Работодателю</a>
-    <a href="candidate.html">Кандидату</a>
-    <a href="https://github.com/akekosik/pruf-platform/blob/main/docs/documentation.md" target="_blank" rel="noopener">Документация</a>
-  </div>
-</footer>
-
-<div class="modal" id="modal-lead" hidden>
-  <div class="modal__backdrop" data-modal-close></div>
-  <div class="modal__body">
-    <button class="modal__close" type="button" data-modal-close aria-label="Закрыть">×</button>
-    <h3>Заявка на пилот</h3>
-    <p class="muted">Две недели на договор, пакет до 20 верификаций в пилоте.</p>
-    <form data-lead-form>
-      <label class="field"><span>Имя</span><input name="name" required placeholder="Как к вам обращаться"></label>
-      <label class="field"><span>Компания</span><input name="company" placeholder="Название"></label>
-      <label class="field"><span>Почта или телеграм</span><input name="contact" required placeholder="для ответа"></label>
-      <label class="field"><span>Сценарий</span>
-        <select name="scenario">
-          <option>Найм разработчиков</option>
-          <option>Стажировка или целевой набор</option>
-          <option>Внутренний допуск сотрудников</option>
-          <option>Закрытый контур (on-premise)</option>
-          <option>Вуз или СПО</option>
-        </select>
-      </label>
-      <label class="field"><span>Комментарий</span><textarea name="comment" rows="3" placeholder="Сколько кандидатов в месяц, какие стеки"></textarea></label>
-      <button class="btn btn--wide" type="submit">Отправить заявку</button>
-    </form>
-  </div>
-</div>
-
-<script src="js/app.js"></script>
-<script>
-(function () {
-  var P = window.PRUF;
-  if (!P) return;
-
-  /* 3D-сцена: если ядро ещё не запустило анимацию на canvas, запускаем вручную. */
-  P.ready(function () {
-    setTimeout(function () {
-      var canvas = document.getElementById("scene");
-      if (!canvas || !canvas.getContext) return;
-      var painted = false;
-      try {
-        var ctx = canvas.getContext("2d");
-        var data = ctx.getImageData(0, 0, Math.min(64, canvas.width), Math.min(64, canvas.height)).data;
-        for (var i = 3; i < data.length; i += 4) { if (data[i] !== 0) { painted = true; break; } }
-      } catch (error) { painted = true; }
-      if (!painted && typeof P.scene === "function") {
-        try {
-          P.scene(canvas);
-          var fallback = document.querySelector(".scene__fallback");
-          if (fallback) fallback.style.display = "none";
-        } catch (error) { /* остаётся CSS-куб */ }
-      }
-    }, 420);
-  });
-
-  /* Живой пример: кнопка «Сломать» строит мутации через движок или берёт демо-снимок. */
-  P.ready(function () {
-    var button = document.getElementById("try-break");
-    var host = document.getElementById("try-mutations");
-    var note = document.getElementById("try-note");
-    if (!button || !host) return;
-    button.addEventListener("click", function () {
-      var source = document.getElementById("try-code");
-      var code = source ? source.textContent : "";
-      button.disabled = true;
-      button.textContent = "\u041b\u043e\u043c\u0430\u0435\u043c\u2026";
-      host.innerHTML = "<p class=\"muted\">\u0420\u0430\u0437\u0431\u0438\u0440\u0430\u0435\u043c AST\u2026</p>";
-      P.engine.mutate(code, 8).then(function (preview) {
-        var list = preview.mutations || [];
-        host.innerHTML = "";
-        if (!list.length) {
-          host.innerHTML = "<p class=\"muted\">\u041c\u0443\u0442\u0430\u0446\u0438\u0438 \u043d\u0435 \u043f\u043e\u0441\u0442\u0440\u043e\u0438\u043b\u0438\u0441\u044c.</p>";
-        }
-        list.slice(0, 8).forEach(function (mutation, index) {
-          var item = P.el("div", { class: "mut " + (mutation.status === "survived" ? "is-survived" : mutation.status === "killed" ? "is-killed" : ""), style: "animation-delay:" + (index * 45) + "ms" }, [
-            P.el("div", { class: "mut__head" }, [
-              P.el("span", { class: "mut__id", text: mutation.id }),
-              P.el("span", { class: "mut__line", text: "\u0441\u0442\u0440\u043e\u043a\u0430 " + (mutation.line || "?") }),
-              P.el("span", { class: "mut__status", text: mutation.skill_title || "" })
-            ]),
-            P.el("div", { class: "mut__diff" }, [
-              P.el("code", { class: "mut__before", text: "\u2212 " + (mutation.before || "") }),
-              P.el("code", { class: "mut__after", text: "+ " + (mutation.after || "") })
-            ]),
-            mutation.consequence ? P.el("p", { class: "mut__why", text: mutation.consequence }) : null
-          ]);
-          host.appendChild(item);
-        });
-        if (note) {
-          note.textContent = preview.__demo
-            ? "\u0414\u0435\u043c\u043e-\u0441\u043d\u0438\u043c\u043e\u043a: \u044d\u0442\u043e \u0440\u0435\u0430\u043b\u044c\u043d\u044b\u0439 \u0440\u0435\u0437\u0443\u043b\u044c\u0442\u0430\u0442 \u043f\u0440\u043e\u0433\u043e\u043d\u0430 \u0434\u0432\u0438\u0436\u043a\u0430, \u0437\u0430\u0444\u0438\u043a\u0441\u0438\u0440\u043e\u0432\u0430\u043d\u043d\u044b\u0439 \u0432 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0438. \u0417\u0430\u043f\u0443\u0441\u0442\u0438\u0442\u0435 python3 -m engine.cli serve \u2014 \u0438 \u043c\u0443\u0442\u0430\u0446\u0438\u0438 \u0431\u0443\u0434\u0443\u0442 \u0441\u0447\u0438\u0442\u0430\u0442\u044c\u0441\u044f \u043d\u0430 \u043b\u044e\u0431\u043e\u043c \u0432\u0430\u0448\u0435\u043c \u043a\u043e\u0434\u0435."
-            : "\u041c\u0443\u0442\u0430\u0446\u0438\u0438 \u043f\u043e\u0441\u0442\u0440\u043e\u0435\u043d\u044b \u0436\u0438\u0432\u044b\u043c \u0434\u0432\u0438\u0436\u043a\u043e\u043c: \u043c\u0435\u0441\u0442 \u0434\u043b\u044f \u043f\u0440\u0430\u0432\u043a\u0438 \u2014 " + (preview.sites || list.length) + ".";
-        }
-      }).catch(function (error) {
-        host.innerHTML = "<p class=\"muted\">\u041e\u0448\u0438\u0431\u043a\u0430: " + P.escapeHtml(error.message) + "</p>";
-      }).then(function () {
-        button.disabled = false;
-        button.textContent = "\u0421\u043b\u043e\u043c\u0430\u0442\u044c \u0435\u0449\u0451 \u0440\u0430\u0437";
-      });
-    });
-  });
-
-  /* Цифры тарифов и юнит-экономики берутся из engine/economics.py. */
-  P.ready(function () {
-    P.engine.economics().then(function (data) {
-      var unit = data.unit || {}, breakeven = data.breakeven || {}, prices = data.prices || {};
-      function set(id, value) { var node = document.getElementById(id); if (node && value !== undefined && value !== null) node.textContent = value; }
-      set("econ-margin", P.money(unit.margin));
-      set("econ-saving", P.money(unit.client_saving));
-      set("econ-breakeven", breakeven.sessions_needed);
-      set("econ-companies", breakeven.companies_needed);
-      if (prices.verification) set("price-verification", prices.verification);
-      if (prices.subscription) set("price-subscription", prices.subscription);
-      if (prices.onprem) set("price-onprem", prices.onprem);
-    }).catch(function () { /* остаются статичные значения из разметки */ });
-  });
-})();
-</script>
-</body>
-</html>
+<!-- ------------------------------------------------------------------ lead -->
+<section class="section" id="lead">
+	<div class="container">
+		<div class="cta-band reveal">
+			<h2 class="mb-16">Запросить пилот на две недели</h2>
+			<p class="lead" style="max-width:640px;margin:0 auto 28px">Пилот — это 10–20 верификаций на ваших же тестовых заданиях. Данные остаются у вас, развёртывание возможно вн
