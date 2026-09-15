@@ -1,88 +1,236 @@
 <!doctype html>
 <html lang="ru">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ПРУФ · сессия защиты понимания</title>
-<link rel="stylesheet" href="css/app.css">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Сессия защиты — ПРУФ</title>
+<meta name="description" content="15-минутная сессия защиты: вопросы строятся из строк вашего решения. Без камеры, без записи экрана, без языковых моделей." />
+<link rel="stylesheet" href="/css/app.css" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23ff3b5c'/%3E%3Ctext x='16' y='22' font-family='monospace' font-size='16' font-weight='bold' text-anchor='middle' fill='%23140609'%3EP%3C/text%3E%3C/svg%3E" />
 </head>
 <body>
 
 <header class="nav">
-  <a class="brand" href="index.html"><span class="brand__slash">/</span> ПРУФ</a>
-  <nav class="nav__links">
-    <a href="index.html">Главная</a>
-    <a href="studio.html">Проверка кода</a>
-    <a href="session.html?demo=1">Сессия защиты</a>
-    <a href="employer.html">Кабинет работодателя</a>
-    <a href="candidate.html">Кабинет кандидата</a>
-  </nav>
-  <div class="nav__actions">
-    <span class="enginebar" data-engine-badge></span>
-  </div>
+	<div class="container nav-inner">
+		<a class="logo" href="/index.html"><span class="logo-mark">P</span> ПРУФ</a>
+		<nav class="nav-links">
+			<a class="nav-link" href="/index.html">Главная</a>
+			<a class="nav-link" href="/studio.html">Проверка кода</a>
+			<a class="nav-link" href="/session.html?demo=1">Сессия защиты</a>
+			<a class="nav-link" href="/employer.html">Работодателю</a>
+			<a class="nav-link" href="/candidate.html">Кандидату</a>
+			<a class="nav-link" href="/docs.html">Документация</a>
+		</nav>
+		<div class="row" style="gap: 10px">
+			<a class="btn btn-quiet btn-sm" href="/studio.html">Моё решение</a>
+			<button class="nav-burger" type="button" aria-label="Меню">≡</button>
+		</div>
+	</div>
 </header>
 
-<main class="page">
+<!-- готовность начать -->
+<div class="overlay" id="ovStart">
+	<div class="overlay-card">
+		<div class="eyebrow">Сессия защиты понимания</div>
+		<h3 class="mb-8">15 минут на свой же код</h3>
+		<p class="small">Вопросы построены из конкретных строк вашего решения и живут только внутри этой сессии.</p>
+		<ul>
+			<li>Нет камеры, записи экрана и биометрии — проверяется содержание, а не поведение.</li>
+			<li>Каждый вопрос — три варианта правки в вашем коде. После ответа сразу видно объяснение.</li>
+			<li>Протокол остаётся у вас и переиспользуется в других компаниях.</li>
+		</ul>
+		<div class="divider"></div>
+		<div class="row-between small">
+			<span class="dim">Кандидат</span><b id="ovWho">—</b>
+		</div>
+		<div class="row-between small">
+			<span class="dim">Задача</span><b id="ovTask">—</b>
+		</div>
+		<div class="row-between small">
+			<span class="dim">Вопросов в сессии</span><b id="ovCount">—</b>
+		</div>
+		<div class="row-between small mb-16">
+			<span class="dim">Отпечаток решения</span><b id="ovFinger" style="font-family: var(--mono); font-size: 13px">—</b>
+		</div>
+		<button class="btn btn-primary btn-block btn-lg" type="button" id="btnStart">Начать защиту</button>
+		<p class="tiny dim center mt-16 mb-0">Таймер запустится после нажатия. Перезагрузка страницы не сбросит прогресс.</p>
+	</div>
+</div>
 
-  <section class="session__bar reveal">
-    <div class="row row--between">
-      <div>
-        <h1>Сессия защиты понимания</h1>
-        <p class="muted">Вопросы строятся из конкретных строк решения и живут 15 минут.</p>
-      </div>
-      <div class="row row--wrap">
-        <span class="badge badge--accent">Изолятор активен</span>
-        <span class="timer" id="timer">15:00</span>
-        <button class="btn btn--quiet btn--sm" type="button" id="btn-finish">Завершить сейчас</button>
-      </div>
-    </div>
-    <div class="row row--between">
-      <span class="muted" id="progress-label">Мутаций разобрано 0 из 0</span>
-      <span class="muted">Верных ответов: <b id="live-score">0 / 0</b></span>
-    </div>
-    <div class="progress"><span id="progress-bar" style="width:0%"></span></div>
-    <p class="muted" id="session-mode" hidden></p>
-  </section>
+<!-- время вышло -->
+<div class="overlay" id="ovTime">
+	<div class="overlay-card center">
+		<h3 class="mb-8">Время вышло</h3>
+		<p class="small">Сессия длится 15 минут — это часть методики: короткое окно не оставляет времени на внешнюю подсказку.</p>
+		<p class="small dim" id="ovTimeStat">—</p>
+		<button class="btn btn-primary btn-block" type="button" id="btnTimeFinish">Получить протокол</button>
+	</div>
+</div>
 
-  <section id="stage" class="grid grid--sidebar reveal" data-delay="90">
-    <div class="card card--accent q" id="question">
-      <p class="muted">Готовим вопросы…</p>
-    </div>
-    <aside class="card card--flat">
-      <h3>Как читать вопросы</h3>
-      <ul class="list">
-        <li><b>Какая правка опасна?</b> — найдите изменение, которое сломает логику, но оставит тесты зелёными.</li>
-        <li><b>Заметят ли тесты?</b> — проверяет, понимаете ли вы границы своего набора тестов.</li>
-        <li><b>Какой тест упадёт первым?</b> — связь конкретной строки с конкретным тестом.</li>
-        <li><b>Что именно сломается?</b> — последствие правки в поведении программы.</li>
-      </ul>
-      <h3>Правила</h3>
-      <ul class="list">
-        <li>Нет камеры, нет записи экрана, нет биометрии.</li>
-        <li>Вопросы привязаны к вашему решению и не повторяются у других кандидатов.</li>
-        <li>Порог допуска — 70 % контроля.</li>
-        <li>Протокол остаётся у вас и переиспользуется.</li>
-      </ul>
-    </aside>
-  </section>
+<main class="container section-sm">
+	<div id="viewLoading" class="empty"><span class="spin"></span> Загружаем сессию…</div>
 
-  <section id="protocol" class="protocol" hidden></section>
+	<div id="viewError" class="hidden">
+		<div class="card">
+			<h3 class="mb-8">Сессия не найдена</h3>
+			<p class="small" id="errText">Ссылка устарела или сессия была создана в другом окружении.</p>
+			<div class="row" style="gap: 10px">
+				<a class="btn btn-primary" href="/session.html?demo=1">Запустить демо-сессию</a>
+				<a class="btn btn-quiet" href="/studio.html">Собрать свою проверку</a>
+			</div>
+		</div>
+	</div>
 
+	<!-- активная сессия -->
+	<div id="viewSession" class="hidden">
+		<div class="session-top">
+			<div>
+				<div class="tiny dim">Защита понимания</div>
+				<b id="sessWho">—</b>
+				<div class="tiny dim" id="sessTask">—</div>
+			</div>
+			<div class="timer" id="timer">15:00</div>
+			<div class="progress"><i id="progressBar" style="width: 0%"></i></div>
+			<div class="tiny dim" id="qCounter">0 / 0</div>
+			<button class="btn btn-quiet btn-sm" type="button" id="btnFinish">Завершить</button>
+		</div>
+
+		<div class="panel-grid">
+			<div class="stack">
+				<div class="code-window">
+					<div class="code-head">
+						<span class="code-dots"><i></i><i></i><i></i></span>
+						<span id="sessFile">solution.py</span>
+						<span class="tiny dim" id="sessFinger">—</span>
+					</div>
+					<div class="code-body" id="sessCode"></div>
+				</div>
+				<div class="card card-pad-sm">
+					<div class="row-between">
+						<span class="small dim">Правка в вопросе</span>
+						<span class="chip" id="qSkill">—</span>
+					</div>
+					<pre class="diff mt-16" id="qDiff">—</pre>
+					<p class="tiny dim mb-0">Весь расчёт детерминирован: тот же код и тот же набор мутаций дадут тот же вердикт.</p>
+				</div>
+			</div>
+
+			<div class="stack">
+				<div class="q-card">
+					<div class="row-between mb-8">
+						<span class="eyebrow mb-0" id="qType">Вопрос</span>
+						<span class="chip chip-teal" id="qWeight">вес 1.0</span>
+					</div>
+					<h3 class="mb-8" id="qTitle">—</h3>
+					<p class="small" id="qPrompt">—</p>
+					<div id="qOptions"></div>
+					<p class="tiny dim hidden" id="qHint">—</p>
+					<div class="hidden" id="qFeedback">
+						<div class="divider"></div>
+						<div class="row-between mb-8">
+							<b id="fbTitle">—</b>
+							<span class="verdict" id="fbChip">—</span>
+						</div>
+						<p class="small" id="fbText">—</p>
+						<p class="tiny dim mb-0" id="fbSuggestion"></p>
+					</div>
+					<div class="row mt-24" style="gap: 10px; flex-wrap: wrap">
+						<button class="btn btn-primary" type="button" id="btnAnswer" disabled>Ответить</button>
+						<button class="btn btn-teal hidden" type="button" id="btnNext">Следующий вопрос</button>
+						<button class="btn btn-quiet" type="button" id="btnHint">Подсказка</button>
+					</div>
+				</div>
+				<div class="card card-pad-sm">
+					<div class="row-between small"><span class="dim">Мутаций построено</span><b id="stMut">—</b></div>
+					<div class="row-between small"><span class="dim">Выжило после тестов</span><b class="u-red" id="stSurvived">—</b></div>
+					<div class="row-between small"><span class="dim">Мутационный счёт</span><b id="stScore">—</b></div>
+					<div class="row-between small"><span class="dim">Ответов верно</span><b id="stCorrect">0</b></div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- протокол -->
+	<div id="viewProtocol" class="hidden">
+		<div class="topbar">
+			<div>
+				<div class="eyebrow">Протокол понимания</div>
+				<h2 class="mb-0" id="pWho">—</h2>
+				<p class="small dim mb-0" id="pTask">—</p>
+			</div>
+			<div class="row" style="gap: 10px; flex-wrap: wrap">
+				<a class="btn btn-teal" id="pPdf" href="#" target="_blank" rel="noopener">Скачать PDF</a>
+				<a class="btn btn-quiet" id="pTxt" href="#" target="_blank" rel="noopener">Текстовая версия</a>
+				<button class="btn btn-quiet" type="button" id="btnCopyLink">Скопировать ссылку</button>
+			</div>
+		</div>
+
+		<div class="kpi-grid">
+			<div class="kpi"><b id="pControl">—</b><span>Контроль понимания</span></div>
+			<div class="kpi"><b id="pAnswers">—</b><span>Верных ответов</span></div>
+			<div class="kpi"><b id="pScore">—</b><span>Мутационный счёт тестов</span></div>
+			<div class="kpi"><b id="pDuration">—</b><span>Длительность сессии</span></div>
+		</div>
+
+		<div class="grid grid-2">
+			<div class="stack">
+				<div class="card">
+					<div class="row-between mb-16">
+						<h4 class="card-title mb-0">Вердикт</h4>
+						<span class="verdict" id="pVerdictChip">—</span>
+					</div>
+					<p class="lead mb-8" id="pVerdictLabel">—</p>
+					<p class="small" id="pVerdictText">—</p>
+					<p class="tiny dim mb-0" id="pReproducible">—</p>
+				</div>
+				<div class="card card-pad-sm">
+					<h4 class="card-title mb-16">Карта навыков</h4>
+					<div class="table-wrap">
+						<table class="t">
+							<thead><tr><th>Навык</th><th>Вопросы</th><th>Уровень</th><th>Вердикт</th></tr></thead>
+							<tbody id="pSkills"></tbody>
+						</table>
+					</div>
+				</div>
+				<div class="card card-pad-sm">
+					<h4 class="card-title mb-16">Риски и что делать</h4>
+					<div class="stack" id="pRisks"></div>
+				</div>
+			</div>
+
+			<div class="stack">
+				<div class="card">
+					<div class="gauge" id="pGauge">
+						<svg width="148" height="148" viewBox="0 0 148 148"><circle class="gauge-c gauge-bg" cx="74" cy="74" r="62"></circle><circle class="gauge-c gauge-fg" cx="74" cy="74" r="62"></circle></svg>
+						<div class="gauge-val"><div><b>0</b><span>контроль понимания</span></div></div>
+					</div>
+					<p class="center small muted mt-16 mb-0" id="pThreshold">—</p>
+				</div>
+				<div class="card card-pad-sm">
+					<h4 class="card-title mb-16">Цитаты из решения</h4>
+					<div class="stack" id="pQuotes"></div>
+				</div>
+				<div class="card card-pad-sm">
+					<h4 class="card-title mb-16">Хронология ответов</h4>
+					<div class="timeline" id="pTimeline"></div>
+				</div>
+				<div class="card card-pad-sm">
+					<h4 class="card-title mb-16">Отправить работодателю</h4>
+					<label class="field"><span>Email</span><input class="input" id="sendEmail" type="email" placeholder="hr@company.ru" /></label>
+					<button class="btn btn-primary btn-block" type="button" id="btnSend">Отправить протокол</button>
+					<p class="tiny dim mt-16 mb-0" id="sendStatus">Отправка в прототипе сохраняется локально, без выхода в сеть.</p>
+				</div>
+				<div class="row" style="gap: 10px; flex-wrap: wrap">
+					<a class="btn btn-quiet flex-1" href="/candidate.html">Кабинет кандидата</a>
+					<a class="btn btn-quiet flex-1" href="/studio.html">Новая проверка</a>
+				</div>
+			</div>
+		</div>
+	</div>
 </main>
 
-<footer class="footer">
-  <div>
-    <p class="brand"><span class="brand__slash">/</span> ПРУФ</p>
-    <p class="muted">Вердикт воспроизводим: те же мутации можно пересчитать командой CLI.</p>
-  </div>
-  <div class="footer__links">
-    <a href="studio.html">Проверка кода</a>
-    <a href="candidate.html">Кабинет кандидата</a>
-    <a href="employer.html">Кабинет работодателя</a>
-  </div>
-</footer>
-
-<script src="js/app.js"></script>
-<script src="js/session.js"></script>
+<div class="toast-wrap" id="toastWrap"></div>
+<script src="/js/app.js"></script>
+<script src="/js/session.js"></script>
 </body>
 </html>
