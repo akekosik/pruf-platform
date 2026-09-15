@@ -1,543 +1,399 @@
-/*
- * ПРУФ · web/js/session.js
- * Сессия защиты понимания: 15 минут, вопросы из мутаций собственного кода, протокол.
- *
- * Два режима:
- *  1) сервер запущен — вопросы и протокол строит движок (engine/session.py, engine/protocol.py);
- *  2) сервер не запущен — вопросы собираются в браузере из демо-снимка анализа.
- *     Второй режим нужен только для демонстрации без бэкенда и помечен в интерфейсе.
- */
-(function (global) {
-  "use strict";
-  var P = global.PRUF;
-  var $ = P.$, el = P.el, esc = P.escapeHtml;
+/* Сессия защиты: таймер, вопросы из строк решения, протокол понимания. */
+(function () {
+	"use strict"
+	var P = window.PRUF
+	var S = { id: null, sess: null, qs: [], idx: 0, picked: null, correct: 0, left: 900, tick: null, qAt: 0, proto: null, busy: false }
 
-  var TOTAL_SECONDS = 900;
-  var TITLES = {
-    danger: "\u041a\u0430\u043a\u0430\u044f \u043f\u0440\u0430\u0432\u043a\u0430 \u043e\u043f\u0430\u0441\u043d\u0430?",
-    gap: "\u0417\u0430\u043c\u0435\u0442\u044f\u0442 \u043b\u0438 \u0432\u0430\u0448\u0438 \u0442\u0435\u0441\u0442\u044b \u044d\u0442\u0443 \u043f\u0440\u0430\u0432\u043a\u0443?",
-    first_failure: "\u041a\u0430\u043a\u043e\u0439 \u0442\u0435\u0441\u0442 \u0443\u043f\u0430\u0434\u0451\u0442 \u043f\u0435\u0440\u0432\u044b\u043c?",
-    consequence: "\u0427\u0442\u043e \u0438\u043c\u0435\u043d\u043d\u043e \u0441\u043b\u043e\u043c\u0430\u0435\u0442\u0441\u044f?"
-  };
-  var NO_TEST = "\u041d\u0438 \u043e\u0434\u0438\u043d \u0442\u0435\u0441\u0442 \u043d\u0435 \u0437\u0430\u043c\u0435\u0442\u0438\u0442 \u043f\u0440\u0430\u0432\u043a\u0443";
-  var LETTERS = "ABCDE";
+	var TYPES = {
+		danger: "Опасная правка",
+		gap: "Дыра в тестах",
+		first_failure: "Первый падающий тест",
+		consequence: "Последствие правки",
+	}
 
-  var S = {
-    demo: false, id: null, questions: [], index: 0, answers: [],
-    left: TOTAL_SECONDS, timer: null, analysis: null, meta: {}, finished: false, protocol: null,
-    questionStart: 0
-  };
+	function $(id) {
+		return document.getElementById(id)
+	}
+	function show(id, on) {
+		var el = $(id)
+		if (el) el.classList.toggle("hidden", !on)
+	}
+	function overlay(id, on) {
+		var el = $(id)
+		if (el) el.classList.toggle("is-open", !!on)
+	}
 
-  function param(name) {
-    return new URLSearchParams(location.search).get(name);
-  }
+	/* --------------------------------------------------------------- таймер */
+	function paintTimer() {
+		var el = $("timer")
+		el.textContent = P.clock(Math.max(0, S.left))
+		el.classList.toggle("is-warn", S.left <= 300 && S.left > 60)
+		el.classList.toggle("is-danger", S.left <= 60)
+	}
 
-  function pick(obj, keys, fallback) {
-    if (!obj) return fallback;
-    for (var i = 0; i < keys.length; i += 1) {
-      if (obj[keys[i]] !== undefined && obj[keys[i]] !== null) return obj[keys[i]];
-    }
-    return fallback;
-  }
+	function startTimer() {
+		stopTimer()
+		paintTimer()
+		S.tick = setInterval(function () {
+			S.left -= 1
+			paintTimer()
+			if (S.left <= 0) {
+				stopTimer()
+				$("ovTimeStat").textContent = "Отвечено " + S.idx + " из " + S.qs.length + " вопросов. Протокол считается по фактическим ответам."
+				overlay("ovTime", true)
+			}
+		}, 1000)
+	}
 
-  /* ---------- клиентский сборщик вопросов (только демо-режим) ---------- */
-  function shuffle(list, seed) {
-    var arr = list.slice();
-    var state = seed || 7;
-    for (var i = arr.length - 1; i > 0; i -= 1) {
-      state = (state * 1103515245 + 12345) % 2147483648;
-      var j = state % (i + 1);
-      var tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
-    }
-    return arr;
-  }
+	function stopTimer() {
+		if (S.tick) clearInterval(S.tick)
+		S.tick = null
+	}
 
-  function options(texts, correctText, seed) {
-    var unique = [];
-    texts.forEach(function (text) { if (text && unique.indexOf(text) === -1) unique.push(text); });
-    if (unique.indexOf(correctText) === -1) unique.push(correctText);
-    var ordered = shuffle(unique.slice(0, 4), seed);
-    if (ordered.indexOf(correctText) === -1) ordered[ordered.length - 1] = correctText;
-    return ordered.map(function (text, index) {
-      return { id: "o" + index, letter: LETTERS[index], text: text, correct: text === correctText };
-    });
-  }
+	/* --------------------------------------------------------------- вопрос */
+	function paintStats() {
+		var sum = (S.sess && S.sess.summary) || {}
+		$("stMut").textContent = sum.mutation_total != null ? String(sum.mutation_total) : "\u2014"
+		$("stSurvived").textContent = sum.survived != null ? String(sum.survived) : "\u2014"
+		$("stScore").textContent = sum.mutation_score_pct != null ? sum.mutation_score_pct + " %" : "\u2014"
+		$("stCorrect").textContent = S.correct + " из " + S.idx
+	}
 
-  function buildDemoQuestions(analysis) {
-    var mutations = (analysis.mutations || []).slice();
-    if (!mutations.length) return [];
-    var survived = mutations.filter(function (m) { return m.status === "survived"; });
-    var killed = mutations.filter(function (m) { return m.status === "killed"; });
-    var tests = (analysis.tests || []).map(function (t) { return t.name; });
-    var kinds = ["danger", "gap", "first_failure", "consequence"];
-    var questions = [];
-    var order = killed.concat(survived);
+	function paintProgress() {
+		var total = S.qs.length || 1
+		$("progressBar").style.width = Math.round((S.idx / total) * 100) + "%"
+		$("qCounter").textContent = Math.min(S.idx + 1, total) + " / " + total
+	}
 
-    order.forEach(function (mutation, position) {
-      kinds.forEach(function (kind, kindIndex) {
-        if (questions.length >= 13) return;
-        if ((position + kindIndex) % 3 !== 0 && questions.length > 5) return;
-        var seed = position * 17 + kindIndex * 7 + 3;
-        var question = { id: "q" + (questions.length + 1), kind: kind, mutation: mutation.id, title: TITLES[kind] };
-        question.fragment = { line: mutation.line, before: mutation.before, after: mutation.after };
+	function renderQuestion() {
+		var q = S.qs[S.idx]
+		if (!q) return finish()
+		S.picked = null
+		S.qAt = Date.now()
+		$("qType").textContent = TYPES[q.type] || "Вопрос"
+		$("qWeight").textContent = "вес " + q.weight
+		$("qTitle").textContent = q.title
+		$("qPrompt").textContent = q.prompt
+		$("qSkill").textContent = q.skill_title || ""
+		$("qHint").textContent = q.hint || ""
+		$("qHint").classList.add("hidden")
+		$("qDiff").innerHTML = P.renderDiff(q.mutation.diff)
+		$("sessCode").innerHTML = P.renderCode(S.sess.code, { hot: q.mutation.line })
+		var hot = document.querySelector("#sessCode .code-line.is-hot")
+		if (hot && hot.scrollIntoView) hot.scrollIntoView({ block: "center" })
 
-        if (kind === "danger") {
-          var target = survived[position % Math.max(1, survived.length)] || mutation;
-          var texts = shuffle(mutations, seed).slice(0, 3).map(function (m) {
-            return m.id + ": " + m.before + " \u2192 " + m.after;
-          });
-          question.prompt = "\u041a\u0430\u043a\u0430\u044f \u0438\u0437 \u043f\u0440\u0430\u0432\u043e\u043a \u043f\u0440\u043e\u0439\u0434\u0451\u0442 \u043c\u0438\u043c\u043e \u0432\u0430\u0448\u0435\u0433\u043e \u043d\u0430\u0431\u043e\u0440\u0430 \u0442\u0435\u0441\u0442\u043e\u0432 \u2014 \u0442\u043e \u0435\u0441\u0442\u044c \u0441\u043b\u043e\u043c\u0430\u0435\u0442 \u043b\u043e\u0433\u0438\u043a\u0443, \u043d\u043e \u043e\u0441\u0442\u0430\u0432\u0438\u0442 \u0442\u0435\u0441\u0442\u044b \u0437\u0435\u043b\u0451\u043d\u044b\u043c\u0438?";
-          question.fragment = { line: target.line, before: target.before, after: target.after };
-          question.mutation = target.id;
-          question.options = options(texts, target.id + ": " + target.before + " \u2192 " + target.after, seed);
-          question.explanation = "\u041f\u0440\u0430\u0432\u043a\u0430 " + target.id + " \u0432 \u0441\u0442\u0440\u043e\u043a\u0435 " + target.line +
-            " \u043f\u0440\u043e\u0448\u043b\u0430 \u043d\u0435\u0437\u0430\u043c\u0435\u0447\u0435\u043d\u043d\u043e\u0439 \u043f\u0440\u0438 \u0440\u0435\u0430\u043b\u044c\u043d\u043e\u043c \u043f\u0440\u043e\u0433\u043e\u043d\u0435. " + (target.suggestion || "");
-        } else if (kind === "gap") {
-          var correctGap = mutation.status === "survived"
-            ? NO_TEST
-            : "\u0414\u0430, \u0443\u043f\u0430\u0434\u0451\u0442 " + ((mutation.killed_by || [])[0] || "\u0442\u0435\u0441\u0442");
-          var gapTexts = [NO_TEST, "\u041f\u0440\u043e\u0433\u043e\u043d \u0443\u043f\u0430\u0434\u0451\u0442 \u0446\u0435\u043b\u0438\u043a\u043e\u043c: \u043e\u0448\u0438\u0431\u043a\u0430 \u0438\u043b\u0438 \u0442\u0430\u0439\u043c\u0430\u0443\u0442"];
-          tests.slice(0, 3).forEach(function (name) { gapTexts.push("\u0414\u0430, \u0443\u043f\u0430\u0434\u0451\u0442 " + name); });
-          question.prompt = "\u041f\u0440\u0430\u0432\u043a\u0430 " + mutation.id + " \u0432\u043d\u0435\u0441\u0435\u043d\u0430 \u0432 \u0441\u0442\u0440\u043e\u043a\u0443 " + mutation.line +
-            ". \u0417\u0430\u043c\u0435\u0442\u0438\u0442 \u043b\u0438 \u0435\u0451 \u0432\u0430\u0448 \u043d\u0430\u0431\u043e\u0440 \u0442\u0435\u0441\u0442\u043e\u0432?";
-          question.options = options(gapTexts, correctGap, seed);
-          question.explanation = mutation.status === "survived"
-            ? "\u041d\u0438 \u043e\u0434\u0438\u043d \u0442\u0435\u0441\u0442 \u043d\u0435 \u0443\u043f\u0430\u043b: \u044d\u0442\u043e \u0434\u044b\u0440\u0430 \u0432 \u043d\u0430\u0431\u043e\u0440\u0435. " + (mutation.suggestion || "")
-            : "\u041f\u0440\u0430\u0432\u043a\u0443 \u043f\u043e\u0439\u043c\u0430\u043b\u0438: " + (mutation.killed_by || []).join(", ") + ".";
-        } else if (kind === "first_failure") {
-          var correctFirst = (mutation.killed_by || [])[0] || NO_TEST;
-          var failTexts = tests.slice(0, 3).concat([NO_TEST]);
-          question.prompt = "\u0415\u0441\u043b\u0438 \u043f\u0440\u0438\u043c\u0435\u043d\u0438\u0442\u044c " + mutation.id + " (" + mutation.before + " \u2192 " + mutation.after +
-            "), \u043a\u0430\u043a\u043e\u0439 \u0442\u0435\u0441\u0442 \u0443\u043f\u0430\u0434\u0451\u0442 \u043f\u0435\u0440\u0432\u044b\u043c?";
-          question.options = options(failTexts, correctFirst, seed);
-          question.explanation = correctFirst === NO_TEST
-            ? "\u041d\u0438 \u043e\u0434\u0438\u043d \u0442\u0435\u0441\u0442 \u043d\u0435 \u0440\u0435\u0430\u0433\u0438\u0440\u0443\u0435\u0442 \u043d\u0430 \u044d\u0442\u0443 \u043f\u0440\u0430\u0432\u043a\u0443."
-            : "\u041f\u0435\u0440\u0432\u044b\u043c \u0443\u043f\u0430\u043b " + correctFirst + ".";
-        } else {
-          var consequences = shuffle(mutations, seed).slice(0, 3).map(function (m) { return m.consequence; });
-          question.prompt = "\u0427\u0442\u043e \u0438\u043c\u0435\u043d\u043d\u043e \u0438\u0437\u043c\u0435\u043d\u0438\u0442\u0441\u044f \u0432 \u043f\u043e\u0432\u0435\u0434\u0435\u043d\u0438\u0438 \u043a\u043e\u0434\u0430 \u043f\u043e\u0441\u043b\u0435 \u043f\u0440\u0430\u0432\u043a\u0438 " + mutation.id + "?";
-          question.options = options(consequences, mutation.consequence, seed);
-          question.explanation = "\u041f\u0440\u0430\u0432\u043a\u0430 \u0432 \u0441\u0442\u0440\u043e\u043a\u0435 " + mutation.line + ": " + mutation.consequence + ".";
-        }
-        question.skill = mutation.skill;
-        question.skill_title = mutation.skill_title;
-        questions.push(question);
-      });
-    });
-    return questions.slice(0, 13);
-  }
+		var out = []
+		for (var i = 0; i < q.options.length; i++) {
+			var o = q.options[i]
+			var body = o.kind === "diff" ? '<pre class="diff mb-0">' + P.renderDiff(o.label) + "</pre>" : "<span>" + P.esc(o.label) + "</span>"
+			out.push('<button type="button" class="q-option" data-id="' + P.escAttr(o.id) + '"><span class="key">' + P.esc(o.id) + "</span>" + body + "</button>")
+		}
+		$("qOptions").innerHTML = out.join("")
+		show("qFeedback", false)
+		$("btnAnswer").disabled = true
+		$("btnAnswer").classList.remove("hidden")
+		$("btnNext").classList.add("hidden")
+		paintProgress()
+		paintStats()
+	}
 
-  /* ---------- таймер ---------- */
-  function paintTimer() {
-    var node = $("#timer");
-    if (!node) return;
-    node.textContent = P.clock(S.left);
-    node.classList.toggle("is-low", S.left <= 120);
-  }
+	function pick(id) {
+		S.picked = id
+		var rows = document.querySelectorAll("#qOptions .q-option")
+		for (var i = 0; i < rows.length; i++) rows[i].classList.toggle("is-selected", rows[i].getAttribute("data-id") === id)
+		$("btnAnswer").disabled = false
+	}
 
-  function startTimer() {
-    paintTimer();
-    S.timer = setInterval(function () {
-      S.left -= 1;
-      paintTimer();
-      if (S.left <= 0) {
-        clearInterval(S.timer);
-        P.toast("\u0412\u0440\u0435\u043c\u044f \u0432\u044b\u0448\u043b\u043e: \u0441\u0435\u0441\u0441\u0438\u044f \u0437\u0430\u043a\u0440\u044b\u0442\u0430", "warn", 6000);
-        finish();
-      }
-    }, 1000);
-  }
+	function answer() {
+		if (!S.picked || S.busy) return
+		var q = S.qs[S.idx]
+		S.busy = true
+		$("btnAnswer").disabled = true
+		P.api
+			.sessionAnswer(S.id, { question_id: q.id, option_id: S.picked, seconds: Math.round((Date.now() - S.qAt) / 1000) })
+			.then(function (r) {
+				var a = r.answer || {}
+				S.sess = r.session || S.sess
+				if (a.correct) S.correct += 1
+				var right = a.correct_options || []
+				var rows = document.querySelectorAll("#qOptions .q-option")
+				for (var i = 0; i < rows.length; i++) {
+					var id = rows[i].getAttribute("data-id")
+					var isRight = right.indexOf(id) >= 0
+					rows[i].classList.toggle("is-correct", isRight)
+					rows[i].classList.toggle("is-wrong", id === S.picked && !isRight)
+					rows[i].disabled = true
+				}
+				$("fbTitle").textContent = a.correct ? "Верно — эту строку вы контролируете" : "Мимо — правка прошла незамеченной"
+				$("fbChip").className = "verdict " + (a.correct ? "control" : "none")
+				$("fbChip").textContent = a.correct ? "верно" : "ошибка"
+				$("fbText").textContent = a.explanation || ""
+				$("fbSuggestion").textContent = a.suggestion || ""
+				show("qFeedback", true)
+				$("btnAnswer").classList.add("hidden")
+				var last = S.idx >= S.qs.length - 1
+				$("btnNext").textContent = last ? "Завершить и получить протокол" : "Следующий вопрос"
+				$("btnNext").classList.remove("hidden")
+				S.idx += 1
+				paintProgress()
+				paintStats()
+			})
+			.catch(function (e) {
+				P.toast(e.message, "err")
+				$("btnAnswer").disabled = false
+			})
+			.then(function () {
+				S.busy = false
+			})
+	}
 
-  /* ---------- рендер вопроса ---------- */
-  function paintProgress() {
-    var done = S.answers.length;
-    var total = S.questions.length;
-    var label = $("#progress-label");
-    if (label) label.textContent = "\u041c\u0443\u0442\u0430\u0446\u0438\u0439 \u0440\u0430\u0437\u043e\u0431\u0440\u0430\u043d\u043e " + done + " \u0438\u0437 " + total;
-    var bar = $("#progress-bar");
-    if (bar) bar.style.width = (total ? Math.round((done / total) * 100) : 0) + "%";
-    var correct = S.answers.filter(function (a) { return a.correct; }).length;
-    var score = $("#live-score");
-    if (score) score.textContent = correct + " / " + done;
-  }
+	function next() {
+		if (S.idx >= S.qs.length) return finish()
+		renderQuestion()
+	}
 
-  function paintQuestion() {
-    var question = S.questions[S.index];
-    var host = $("#question");
-    if (!host) return;
-    if (!question) { finish(); return; }
-    S.questionStart = Date.now();
-    host.innerHTML = "";
-    host.appendChild(el("div", { class: "q__head" }, [
-      el("span", { class: "badge badge--accent", text: "\u0412\u043e\u043f\u0440\u043e\u0441 " + (S.index + 1) + " / " + S.questions.length }),
-      el("span", { class: "badge", text: question.mutation || "" }),
-      question.skill_title ? el("span", { class: "badge", text: question.skill_title }) : null
-    ]));
-    host.appendChild(el("h2", { class: "q__title", text: question.title || TITLES[question.kind] || "\u0412\u043e\u043f\u0440\u043e\u0441" }));
-    host.appendChild(el("p", { class: "q__prompt", text: pick(question, ["prompt", "text"], "") }));
+	/* ------------------------------------------------------------- протокол */
+	function finish() {
+		if (S.busy) return
+		S.busy = true
+		stopTimer()
+		overlay("ovTime", false)
+		P.api
+			.sessionFinish(S.id)
+			.then(function (r) {
+				renderProtocol(r.protocol || r)
+			})
+			.catch(function (e) {
+				P.toast(e.message, "err")
+			})
+			.then(function () {
+				S.busy = false
+			})
+	}
 
-    var fragment = question.fragment || {};
-    if (fragment.before || fragment.after) {
-      host.appendChild(el("div", { class: "mut__diff" }, [
-        el("code", { class: "mut__before", text: "\u2212 " + (fragment.before || "") }),
-        el("code", { class: "mut__after", text: "+ " + (fragment.after || "") }),
-        fragment.line ? el("span", { class: "muted", text: "\u0441\u0442\u0440\u043e\u043a\u0430 " + fragment.line }) : null
-      ]));
-    }
+	function renderProtocol(p) {
+		S.proto = p
+		var cand = p.candidate || {}
+		var task = p.task || {}
+		$("pWho").textContent = cand.name || "Кандидат"
+		$("pTask").textContent =
+			(task.title || "") + " · " + (task.language || "") + " · " + (task.lines || 0) + " строк · " + (task.sites || 0) + " мест правки" + (cand.vacancy ? " · " + cand.vacancy : "")
+		$("pControl").textContent = p.control_pct + " %"
+		$("pAnswers").textContent = p.questions.correct + " / " + p.questions.total
+		$("pScore").textContent = p.mutation.score_pct + " %"
+		$("pDuration").textContent = p.duration_clock
+		$("pVerdictChip").className = "verdict " + P.verdictClass(p.verdict.level)
+		$("pVerdictChip").textContent = p.passed ? "допуск подтверждён" : "допуск не подтверждён"
+		$("pVerdictLabel").textContent = p.verdict.label
+		$("pVerdictText").textContent = p.verdict.summary + " " + (p.verdict.tests_note || "")
+		$("pReproducible").textContent = p.reproducible || ""
+		$("pThreshold").textContent = "Порог допуска — " + p.pass_threshold_pct + " %. Вердикт воспроизводим: тот же код и те же мутации дадут те же цифры."
 
-    var list = el("div", { class: "options" });
-    (question.options || []).forEach(function (option) {
-      var button = el("button", { class: "option", type: "button" }, [
-        el("span", { class: "option__letter", text: option.letter || "" }),
-        el("span", { class: "option__text", text: pick(option, ["text", "label"], "") })
-      ]);
-      button.addEventListener("click", function () { answer(option, button); });
-      list.appendChild(button);
-    });
-    host.appendChild(list);
-    host.appendChild(el("div", { class: "q__review", id: "review" }));
-    paintProgress();
-  }
+		var skills = p.skills || [],
+			sk = []
+		for (var i = 0; i < skills.length; i++) {
+			var s = skills[i]
+			sk.push(
+				"<tr><td>" + P.esc(s.title) + "</td><td>" + s.correct + " / " + s.questions + "</td>" +
+					'<td><span class="bar"><i class="' + P.barClass(s.score_pct) + '" style="width: ' + s.score_pct + '%"></i></span> ' + s.score_pct + " %</td>" +
+					'<td><span class="verdict ' + P.verdictClass(s.verdict) + '">' + P.esc(s.verdict_label) + "</span></td></tr>"
+			)
+		}
+		$("pSkills").innerHTML = sk.join("")
 
-  function paintReview(payload, correct) {
-    var host = $("#review");
-    if (!host) return;
-    host.innerHTML = "";
-    host.appendChild(el("h3", { text: "\u0420\u0430\u0437\u0431\u043e\u0440 \u043e\u0442\u0432\u0435\u0442\u0430" }));
-    host.appendChild(el("p", {
-      class: "badge " + (correct ? "badge--ok" : "badge--bad"),
-      text: correct ? "\u0412\u0435\u0440\u043d\u043e" : "\u041d\u0435\u0432\u0435\u0440\u043d\u043e"
-    }));
-    var explanation = pick(payload, ["explanation", "review", "detail"], "");
-    if (explanation) host.appendChild(el("p", { text: explanation }));
+		var risks = p.risks || [],
+			rs = []
+		for (var k = 0; k < risks.length; k++) {
+			var r = risks[k]
+			rs.push(
+				'<div class="card card-pad-sm" style="background: var(--surface-3)">' +
+					'<div class="tiny u-red mb-8">' + P.esc(r.kind) + " · строка " + r.line + " · " + P.esc(r.mutation) + "</div>" +
+					'<div class="small">' + P.esc(r.text) + "</div>" +
+					(r.action ? '<div class="tiny dim mt-16">' + P.esc(r.action) + "</div>" : "") +
+					"</div>"
+			)
+		}
+		$("pRisks").innerHTML = rs.join("") || '<p class="tiny dim mb-0">Рисков не зафиксировано.</p>'
 
-    var runLines = pick(payload, ["run", "console"], null);
-    var consoleBox = el("div", { class: "console console--sm" });
-    var question = S.questions[S.index] || {};
-    var mutationId = question.mutation;
-    var mutation = (S.analysis && (S.analysis.mutations || []).filter(function (m) { return m.id === mutationId; })[0]) || null;
-    var tests = (S.analysis && S.analysis.tests) || [];
-    if (runLines && runLines.tests) {
-      runLines.tests.forEach(function (test) {
-        consoleBox.appendChild(el("div", { class: "console__line " + (test.status === "passed" ? "is-ok" : "is-bad"), text: (test.status === "passed" ? "\u2713 " : "\u2717 ") + test.name + " \u00b7 " + test.status }));
-      });
-    } else if (mutation && tests.length) {
-      var killedBy = mutation.killed_by || [];
-      consoleBox.appendChild(el("div", { class: "console__line", text: "$ \u043f\u0440\u043e\u0433\u043e\u043d \u0442\u0435\u0441\u0442\u043e\u0432 \u043d\u0430 \u043c\u0443\u0442\u0430\u043d\u0442\u0435 " + mutation.id }));
-      tests.forEach(function (test) {
-        var failed = killedBy.indexOf(test.name) !== -1;
-        consoleBox.appendChild(el("div", {
-          class: "console__line " + (failed ? "is-bad" : "is-ok"),
-          text: (failed ? "\u2717 " : "\u2713 ") + test.name + " \u00b7 " + (failed ? "failed" : "passed")
-        }));
-      });
-      consoleBox.appendChild(el("div", {
-        class: "console__line " + (killedBy.length ? "is-ok" : "is-warn"),
-        text: killedBy.length ? "\u041c\u0443\u0442\u0430\u043d\u0442 \u0443\u0431\u0438\u0442: \u0442\u0435\u0441\u0442\u044b \u0437\u0430\u043c\u0435\u0442\u0438\u043b\u0438 \u043f\u0440\u0430\u0432\u043a\u0443" : "\u041c\u0443\u0442\u0430\u043d\u0442 \u0432\u044b\u0436\u0438\u043b: \u043d\u0438 \u043e\u0434\u0438\u043d \u0442\u0435\u0441\u0442 \u043d\u0435 \u0443\u043f\u0430\u043b"
-      }));
-    }
-    host.appendChild(consoleBox);
+		var quotes = (p.quotes || []).slice(0, 4),
+			qs = []
+		for (var q = 0; q < quotes.length; q++) {
+			var c = quotes[q]
+			qs.push(
+				'<div class="quote"><div class="tiny dim mb-8">' + P.esc(c.mutation) + " · строка " + c.line + " · " + P.esc(c.kind) + "</div>" +
+					'<pre class="diff mb-0">' + P.renderDiff(c.diff) + "</pre></div>"
+			)
+		}
+		$("pQuotes").innerHTML = qs.join("") || '<p class="tiny dim mb-0">Цитат нет.</p>'
 
-    var next = el("button", { class: "btn btn--sm", type: "button", text: S.index + 1 >= S.questions.length ? "\u0417\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u044c \u0438 \u043f\u043e\u043b\u0443\u0447\u0438\u0442\u044c \u043f\u0440\u043e\u0442\u043e\u043a\u043e\u043b" : "\u0421\u043b\u0435\u0434\u0443\u044e\u0449\u0438\u0439 \u0432\u043e\u043f\u0440\u043e\u0441" });
-    next.addEventListener("click", function () {
-      S.index += 1;
-      if (S.index >= S.questions.length) finish();
-      else paintQuestion();
-    });
-    host.appendChild(next);
-  }
+		var tl = p.timeline || [],
+			ts = []
+		for (var t = 0; t < tl.length; t++) {
+			var x = tl[t]
+			ts.push(
+				'<div class="tl-item' + (x.correct ? "" : " is-bad") + '">' +
+					'<span class="tl-time">' + P.esc(x.clock) + "</span>" +
+					"<b>" + P.esc(x.title) + "</b>" +
+					'<div class="tiny dim">' + P.esc(x.mutation) + " · строка " + x.line + " · " + P.esc(x.result) + " · " + x.seconds + " с</div></div>"
+			)
+		}
+		$("pTimeline").innerHTML = ts.join("")
 
-  function answer(option, button) {
-    var question = S.questions[S.index];
-    if (!question || button.closest(".options").classList.contains("is-locked")) return;
-    var box = button.closest(".options");
-    box.classList.add("is-locked");
-    var seconds = Math.round((Date.now() - S.questionStart) / 1000);
+		$("pPdf").href = "/api/protocol/" + encodeURIComponent(p.id) + ".pdf"
+		$("pTxt").href = "/api/protocol/" + encodeURIComponent(p.id) + ".txt"
+		P.gauge($("pGauge"), p.control_pct)
 
-    function settle(correct, payload) {
-      Array.prototype.forEach.call(box.children, function (node) { node.disabled = true; });
-      button.classList.add(correct ? "is-correct" : "is-wrong");
-      if (!correct) {
-        var correctId = pick(payload, ["correct", "correct_option"], null);
-        Array.prototype.forEach.call(box.children, function (node, index) {
-          var candidate = (question.options || [])[index];
-          if (candidate && (candidate.correct === true || (correctId && candidate.id === correctId))) node.classList.add("is-correct");
-        });
-      }
-      S.answers.push({ question: question.id, mutation: question.mutation, skill: question.skill, skill_title: question.skill_title, correct: correct, seconds: seconds });
-      paintProgress();
-      paintReview(payload, correct);
-    }
+		try {
+			P.store.save({
+				id: p.session_id,
+				protocol: p.id,
+				candidate: cand.name,
+				vacancy: cand.vacancy || "",
+				task: task.title,
+				control_pct: p.control_pct,
+				passed: p.passed,
+				created_at: p.created_at,
+				status: "finished",
+			})
+		} catch (e) {}
 
-    if (S.demo) {
-      settle(option.correct === true, { explanation: question.explanation });
-      return;
-    }
-    P.engine.answer(S.id, question.id, option.id, seconds).then(function (payload) {
-      var correct = pick(payload, ["correct", "is_correct", "ok"], false) === true;
-      settle(correct, payload);
-    }).catch(function (error) {
-      P.toast("\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0437\u0430\u0441\u0447\u0438\u0442\u0430\u0442\u044c \u043e\u0442\u0432\u0435\u0442: " + error.message, "bad", 5000);
-      box.classList.remove("is-locked");
-    });
-  }
+		show("viewLoading", false)
+		show("viewSession", false)
+		show("viewProtocol", true)
+		overlay("ovStart", false)
+		window.scrollTo(0, 0)
+	}
 
-  /* ---------- протокол ---------- */
-  function buildDemoProtocol() {
-    var total = S.answers.length || 1;
-    var correct = S.answers.filter(function (a) { return a.correct; }).length;
-    var controlPct = Math.round((correct / total) * 100);
-    var bySkill = {};
-    S.answers.forEach(function (item) {
-      var key = item.skill || "other";
-      bySkill[key] = bySkill[key] || { skill: key, title: item.skill_title || "\u041f\u0440\u043e\u0447\u0435\u0435", total: 0, correct: 0 };
-      bySkill[key].total += 1;
-      if (item.correct) bySkill[key].correct += 1;
-    });
-    var skills = Object.keys(bySkill).map(function (key) {
-      var row = bySkill[key];
-      row.ratio = row.total ? row.correct / row.total : 0;
-      row.level = row.ratio >= 0.8 ? "control" : row.ratio >= 0.5 ? "shaky" : "weak";
-      row.label = row.level === "control" ? "\u041a\u043e\u043d\u0442\u0440\u043e\u043b\u0438\u0440\u0443\u0435\u0442" : row.level === "shaky" ? "\u0428\u0430\u0442\u043a\u043e" : "\u041d\u0435 \u043a\u043e\u043d\u0442\u0440\u043e\u043b\u0438\u0440\u0443\u0435\u0442";
-      return row;
-    });
-    var analysis = S.analysis || {};
-    var risks = (analysis.gaps || []).slice(0, 3).map(function (gap) {
-      return { kind: "tests", title: "\u0414\u044b\u0440\u0430 \u0432 \u0442\u0435\u0441\u0442\u0430\u0445: " + gap.id, detail: gap.suggestion || "" };
-    });
-    skills.filter(function (row) { return row.level !== "control"; }).forEach(function (row) {
-      risks.push({ kind: "skill", title: row.label + ": " + row.title, detail: row.correct + " \u0438\u0437 " + row.total + " \u0432\u043e\u043f\u0440\u043e\u0441\u043e\u0432 \u0440\u0430\u0437\u043e\u0431\u0440\u0430\u043d\u044b \u0432\u0435\u0440\u043d\u043e." });
-    });
-    var spent = TOTAL_SECONDS - S.left;
-    return {
-      id: "p-local" + Date.now().toString(36).slice(-6),
-      candidate: { name: S.meta.candidate || "\u0413\u043e\u0441\u0442\u044c", vacancy: S.meta.vacancy || "" },
-      task: { title: S.meta.task || "\u0421\u0432\u043e\u0451 \u0440\u0435\u0448\u0435\u043d\u0438\u0435", language: "Python", lines: analysis.lines, sites: analysis.sites },
-      control_pct: controlPct,
-      passed: controlPct >= 70,
-      pass_threshold_pct: 70,
-      verdict: {
-        level: controlPct >= 80 ? "good" : controlPct >= 70 ? "medium" : controlPct >= 50 ? "low" : "bad",
-        label: controlPct >= 80 ? "\u041f\u043e\u043d\u0438\u043c\u0430\u043d\u0438\u0435 \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u043e"
-          : controlPct >= 70 ? "\u041f\u043e\u043d\u0438\u043c\u0430\u043d\u0438\u0435 \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u043e \u0441 \u043e\u0433\u043e\u0432\u043e\u0440\u043a\u0430\u043c\u0438"
-          : controlPct >= 50 ? "\u0428\u0430\u0442\u043a\u043e\u0435 \u043f\u043e\u043d\u0438\u043c\u0430\u043d\u0438\u0435" : "\u041f\u043e\u043d\u0438\u043c\u0430\u043d\u0438\u0435 \u043d\u0435 \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u043e",
-        summary: "\u0420\u0430\u0437\u043e\u0431\u0440\u0430\u043d\u043e " + correct + " \u0438\u0437 " + total + " \u0432\u043e\u043f\u0440\u043e\u0441\u043e\u0432 \u043f\u043e \u043c\u0443\u0442\u0430\u0446\u0438\u044f\u043c \u0441\u0432\u043e\u0435\u0433\u043e \u0440\u0435\u0448\u0435\u043d\u0438\u044f.",
-        tests_note: "\u041d\u0430\u0431\u043e\u0440 \u0442\u0435\u0441\u0442\u043e\u0432 \u043b\u043e\u0432\u0438\u0442 " + (analysis.mutation_score_pct || 0) + " % \u043f\u0440\u0430\u0432\u043e\u043a."
-      },
-      mutation: {
-        total: analysis.mutation_total || 0, killed: analysis.killed || 0,
-        survived: analysis.survived || 0, score_pct: analysis.mutation_score_pct || 0,
-        verdict: (analysis.verdict || {}).label || ""
-      },
-      questions: { total: S.questions.length, answered: total, correct: correct },
-      skills: skills,
-      risks: risks,
-      quotes: (analysis.gaps || []).slice(0, 2).map(function (gap) {
-        var m = (analysis.mutations || []).filter(function (item) { return item.id === gap.id; })[0] || {};
-        return { id: gap.id, line: gap.line, before: m.before, after: m.after, note: gap.suggestion };
-      }),
-      timeline: S.answers.map(function (item) {
-        return { id: item.mutation, ok: item.correct, clock: P.clock(item.seconds), label: item.correct ? "\u0440\u0430\u0437\u043e\u0431\u0440\u0430\u043b" : "\u043d\u0435 \u0437\u0430\u043c\u0435\u0442\u0438\u043b" };
-      }),
-      duration_seconds: spent,
-      duration_clock: P.clock(spent),
-      reproducible: true,
-      __demo: true
-    };
-  }
+	/* ------------------------------------------------------------------ старт */
+	function fillOverlay() {
+		var meta = S.sess.meta || {}
+		$("ovWho").textContent = meta.candidate || "Кандидат"
+		$("ovTask").textContent = meta.task || "Своё решение"
+		$("ovCount").textContent = String(S.sess.questions_total)
+		$("ovFinger").textContent = S.sess.fingerprint
+		$("sessWho").textContent = meta.candidate || "Кандидат"
+		$("sessTask").textContent = (meta.task || "") + " · " + (meta.language || "Python")
+		$("sessFinger").textContent = "отпечаток " + S.sess.fingerprint
+	}
 
-  function renderProtocol(protocol) {
-    S.protocol = protocol;
-    if (S.timer) clearInterval(S.timer);
-    var stage = $("#stage");
-    var host = $("#protocol");
-    if (stage) stage.hidden = true;
-    if (!host) return;
-    host.hidden = false;
-    var verdict = protocol.verdict || {};
-    var control = pick(protocol, ["control_pct"], 0);
-    host.innerHTML = "";
+	function useSession(s) {
+		S.sess = s
+		S.id = s.id
+		S.qs = s.questions || []
+		S.idx = s.answered || 0
+		S.left = s.remaining_seconds != null ? s.remaining_seconds : s.seconds_total || 900
+		var answers = s.answers || {}
+		S.correct = 0
+		for (var key in answers) if (answers[key] && answers[key].correct) S.correct += 1
+		show("viewLoading", false)
+		fillOverlay()
+		if (s.status === "finished") {
+			var pid = String(s.id).replace(/^s-/, "p-")
+			return P.api
+				.protocol(pid)
+				.then(function (r) {
+					renderProtocol(r.protocol || r)
+				})
+				.catch(function () {
+					finish()
+				})
+		}
+		overlay("ovStart", true)
+	}
 
-    host.appendChild(el("div", { class: "card card--accent" }, [
-      el("div", { class: "row row--between" }, [
-        el("div", {}, [
-          el("h2", { text: "\u041f\u0440\u043e\u0442\u043e\u043a\u043e\u043b \u043f\u043e\u043d\u0438\u043c\u0430\u043d\u0438\u044f" }),
-          el("p", { class: "muted", text: (protocol.candidate || {}).name + " \u00b7 " + ((protocol.task || {}).title || "") })
-        ]),
-        el("div", { class: "protocol__score" }, [
-          el("div", { class: "kpi__value", text: control + " %" }),
-          el("div", { class: "kpi__label", text: "\u043a\u043e\u043d\u0442\u0440\u043e\u043b\u0438\u0440\u0443\u0435\u0442 \u043a\u043e\u0434" })
-        ])
-      ]),
-      el("p", { class: "badge " + P.levelClass(verdict.level), text: verdict.label || "" }),
-      el("p", { text: verdict.summary || "" }),
-      verdict.tests_note ? el("p", { class: "muted", text: verdict.tests_note }) : null,
-      protocol.__demo ? el("p", { class: "muted", text: "\u0414\u0435\u043c\u043e-\u0440\u0435\u0436\u0438\u043c: \u043f\u0440\u043e\u0442\u043e\u043a\u043e\u043b \u0441\u043e\u0431\u0440\u0430\u043d \u0432 \u0431\u0440\u0430\u0443\u0437\u0435\u0440\u0435. \u0421 \u0437\u0430\u043f\u0443\u0449\u0435\u043d\u043d\u044b\u043c \u0434\u0432\u0438\u0436\u043a\u043e\u043c \u0435\u0433\u043e \u0441\u0442\u0440\u043e\u0438\u0442 engine/protocol.py \u0438 \u0432\u044b\u0433\u0440\u0443\u0436\u0430\u0435\u0442 PDF." }) : null
-    ]));
+	function begin() {
+		overlay("ovStart", false)
+		show("viewSession", true)
+		renderQuestion()
+		startTimer()
+	}
 
-    var mutation = protocol.mutation || {};
-    var questions = protocol.questions || {};
-    host.appendChild(el("div", { class: "kpi" }, [
-      el("div", { class: "kpi__item" }, [el("div", { class: "kpi__value", text: String(mutation.total || 0) }), el("div", { class: "kpi__label", text: "\u043c\u0443\u0442\u0430\u0446\u0438\u0439" })]),
-      el("div", { class: "kpi__item" }, [el("div", { class: "kpi__value", text: (mutation.score_pct || 0) + " %" }), el("div", { class: "kpi__label", text: "\u0442\u0435\u0441\u0442\u044b \u043b\u043e\u0432\u044f\u0442" })]),
-      el("div", { class: "kpi__item" }, [el("div", { class: "kpi__value", text: (questions.correct || 0) + " / " + (questions.answered || 0) }), el("div", { class: "kpi__label", text: "\u0432\u0435\u0440\u043d\u044b\u0445 \u043e\u0442\u0432\u0435\u0442\u043e\u0432" })]),
-      el("div", { class: "kpi__item" }, [el("div", { class: "kpi__value", text: protocol.duration_clock || "" }), el("div", { class: "kpi__label", text: "\u0434\u043b\u0438\u0442\u0435\u043b\u044c\u043d\u043e\u0441\u0442\u044c" })])
-    ]));
+	function fail(msg) {
+		show("viewLoading", false)
+		show("viewError", true)
+		if (msg) $("errText").textContent = msg
+	}
 
-    var skills = protocol.skills || [];
-    if (skills.length) {
-      var table = el("table", { class: "table" }, [el("thead", {}, [el("tr", {}, [
-        el("th", { text: "\u041d\u0430\u0432\u044b\u043a" }), el("th", { text: "\u0412\u043e\u043f\u0440\u043e\u0441\u044b" }), el("th", { text: "\u0412\u0435\u0440\u043d\u043e" }), el("th", { text: "\u0412\u0435\u0440\u0434\u0438\u043a\u0442" })
-      ])])]);
-      var body = el("tbody");
-      skills.forEach(function (row) {
-        var level = row.level === "control" ? "badge--ok" : row.level === "shaky" ? "badge--warn" : "badge--bad";
-        body.appendChild(el("tr", {}, [
-          el("td", { text: row.title || row.skill }),
-          el("td", { text: String(row.total || 0) }),
-          el("td", { text: String(row.correct || 0) }),
-          el("td", {}, [el("span", { class: "badge " + level, text: row.label || "" })])
-        ]));
-      });
-      table.appendChild(body);
-      host.appendChild(el("div", { class: "card" }, [el("h3", { text: "\u041a\u0430\u0440\u0442\u0430 \u043d\u0430\u0432\u044b\u043a\u043e\u0432" }), table]));
-    }
+	function init() {
+		$("btnStart").addEventListener("click", begin)
+		$("btnAnswer").addEventListener("click", answer)
+		$("btnNext").addEventListener("click", next)
+		$("btnFinish").addEventListener("click", finish)
+		$("btnTimeFinish").addEventListener("click", finish)
+		$("btnHint").addEventListener("click", function () {
+			$("qHint").classList.toggle("hidden")
+		})
+		$("qOptions").addEventListener("click", function (e) {
+			var row = e.target.closest(".q-option")
+			if (row && !row.disabled) pick(row.getAttribute("data-id"))
+		})
+		$("btnCopyLink").addEventListener("click", function () {
+			P.copy(location.origin + "/session.html?id=" + encodeURIComponent(S.id))
+		})
+		$("btnSend").addEventListener("click", function () {
+			var mail = $("sendEmail").value.trim()
+			if (!mail || mail.indexOf("@") < 0) {
+				P.toast("Укажите email", "err")
+				return
+			}
+			P.api
+				.protocolSend(S.proto.id, mail)
+				.then(function (r) {
+					$("sendStatus").textContent = r.message || "Протокол сохранён в очереди отправки."
+					P.toast("Протокол отправлен", "ok")
+				})
+				.catch(function (e) {
+					P.toast(e.message, "err")
+				})
+		})
+		document.addEventListener("visibilitychange", function () {
+			if (document.hidden || !S.id || !S.tick) return
+			P.api
+				.sessionGet(S.id)
+				.then(function (s) {
+					if (s.remaining_seconds != null) {
+						S.left = s.remaining_seconds
+						paintTimer()
+					}
+				})
+				.catch(function () {})
+		})
 
-    var risks = protocol.risks || [];
-    if (risks.length) {
-      var riskList = el("ul", { class: "list" });
-      risks.forEach(function (risk) {
-        riskList.appendChild(el("li", { html: "<b>" + esc(risk.title || "") + "</b> \u2014 " + esc(risk.detail || "") }));
-      });
-      host.appendChild(el("div", { class: "card" }, [el("h3", { text: "\u0420\u0438\u0441\u043a\u0438 \u0434\u043b\u044f \u0440\u0430\u0431\u043e\u0442\u043e\u0434\u0430\u0442\u0435\u043b\u044f" }), riskList]));
-    }
+		var id = P.qs("id", "")
+		var demo = P.qs("demo", "")
+		if (id) {
+			P.api
+				.sessionGet(id)
+				.then(useSession)
+				.catch(function (e) {
+					fail(e.message)
+				})
+			return
+		}
+		if (demo) {
+			P.api
+				.demo("orders")
+				.then(function (d) {
+					return P.api.sessionStart({
+						code: d.code,
+						tests: d.tests,
+						meta: { candidate: "Демо-кандидат", task: "Разбор заказов из текстового файла", language: "Python", vacancy: "Python-разработчик" },
+						limit: 15,
+						questions: 13,
+					})
+				})
+				.then(function (s) {
+					if (history.replaceState) history.replaceState(null, "", "/session.html?id=" + encodeURIComponent(s.id))
+					useSession(s)
+				})
+				.catch(function (e) {
+					fail(e.message)
+				})
+			return
+		}
+		fail("Откройте ссылку на сессию или запустите демо-сессию.")
+	}
 
-    var timeline = protocol.timeline || [];
-    if (timeline.length) {
-      var line = el("div", { class: "timeline" });
-      timeline.forEach(function (item) {
-        line.appendChild(el("div", { class: "timeline__item " + (item.ok ? "is-ok" : "is-bad") }, [
-          el("span", { class: "timeline__id", text: item.id || "" }),
-          el("span", { class: "timeline__label", text: item.label || "" }),
-          el("span", { class: "timeline__clock", text: item.clock || "" })
-        ]));
-      });
-      host.appendChild(el("div", { class: "card" }, [el("h3", { text: "\u0422\u0430\u0439\u043c\u043b\u0430\u0439\u043d \u0441\u0435\u0441\u0441\u0438\u0438" }), line]));
-    }
-
-    var actions = el("div", { class: "row row--wrap" });
-    var pdf = el("button", { class: "btn", type: "button", text: "\u0421\u043a\u0430\u0447\u0430\u0442\u044c PDF" });
-    pdf.addEventListener("click", function () { downloadProtocol(protocol); });
-    var send = el("button", { class: "btn btn--ghost", type: "button", text: "\u041e\u0442\u043f\u0440\u0430\u0432\u0438\u0442\u044c \u0440\u0430\u0431\u043e\u0442\u043e\u0434\u0430\u0442\u0435\u043b\u044e" });
-    send.addEventListener("click", function () { sendProtocol(protocol); });
-    var again = el("a", { class: "btn btn--quiet", href: "studio.html", text: "\u041f\u0440\u043e\u0432\u0435\u0440\u0438\u0442\u044c \u0434\u0440\u0443\u0433\u043e\u0435 \u0440\u0435\u0448\u0435\u043d\u0438\u0435" });
-    var cabinet = el("a", { class: "btn btn--quiet", href: "candidate.html", text: "\u041c\u043e\u0439 \u043a\u0430\u0431\u0438\u043d\u0435\u0442" });
-    actions.appendChild(pdf); actions.appendChild(send); actions.appendChild(again); actions.appendChild(cabinet);
-    host.appendChild(actions);
-    host.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-
-  function downloadProtocol(protocol) {
-    if (!protocol.__demo && S.id) {
-      global.open("/api/protocol/" + encodeURIComponent(protocol.id || S.id) + ".pdf", "_blank");
-      return;
-    }
-    var lines = [
-      "\u041f\u0420\u0423\u0424 \u00b7 \u043f\u0440\u043e\u0442\u043e\u043a\u043e\u043b \u043f\u043e\u043d\u0438\u043c\u0430\u043d\u0438\u044f",
-      "\u041a\u0430\u043d\u0434\u0438\u0434\u0430\u0442: " + ((protocol.candidate || {}).name || ""),
-      "\u0417\u0430\u0434\u0430\u0447\u0430: " + ((protocol.task || {}).title || ""),
-      "\u041a\u043e\u043d\u0442\u0440\u043e\u043b\u044c: " + protocol.control_pct + " % \u00b7 \u043f\u043e\u0440\u043e\u0433 " + protocol.pass_threshold_pct + " %",
-      "\u0412\u0435\u0440\u0434\u0438\u043a\u0442: " + ((protocol.verdict || {}).label || ""),
-      "\u041c\u0443\u0442\u0430\u0446\u0438\u0438: " + (protocol.mutation || {}).total + ", \u0442\u0435\u0441\u0442\u044b \u043b\u043e\u0432\u044f\u0442 " + (protocol.mutation || {}).score_pct + " %",
-      ""
-    ];
-    (protocol.skills || []).forEach(function (row) {
-      lines.push("\u2022 " + (row.title || row.skill) + ": " + (row.label || "") + " (" + row.correct + "/" + row.total + ")");
-    });
-    lines.push("");
-    (protocol.risks || []).forEach(function (risk) { lines.push("! " + risk.title + " \u2014 " + risk.detail); });
-    var blob = new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" });
-    var link = el("a", { href: URL.createObjectURL(blob), download: "pruf-protocol.txt" });
-    document.body.appendChild(link); link.click(); link.remove();
-    P.toast("\u0412 \u0434\u0435\u043c\u043e-\u0440\u0435\u0436\u0438\u043c\u0435 \u0432\u044b\u0433\u0440\u0443\u0436\u0430\u0435\u0442\u0441\u044f \u0442\u0435\u043a\u0441\u0442\u043e\u0432\u0430\u044f \u0432\u0435\u0440\u0441\u0438\u044f. PDF \u0441\u043e\u0431\u0438\u0440\u0430\u0435\u0442 \u0434\u0432\u0438\u0436\u043e\u043a.", "", 5200);
-  }
-
-  function sendProtocol(protocol) {
-    if (protocol.__demo) {
-      P.toast("\u0414\u0435\u043c\u043e-\u0440\u0435\u0436\u0438\u043c: \u043e\u0442\u043f\u0440\u0430\u0432\u043a\u0430 \u0432 HR \u0440\u0430\u0431\u043e\u0442\u0430\u0435\u0442 \u043f\u0440\u0438 \u0437\u0430\u043f\u0443\u0449\u0435\u043d\u043d\u043e\u043c \u0434\u0432\u0438\u0436\u043a\u0435 (\u0432\u0435\u0431\u0445\u0443\u043a).", "warn", 5200);
-      return;
-    }
-    P.post("/api/protocol/" + encodeURIComponent(protocol.id) + "/send", { channel: "webhook" })
-      .then(function () { P.toast("\u041f\u0440\u043e\u0442\u043e\u043a\u043e\u043b \u043e\u0442\u043f\u0440\u0430\u0432\u043b\u0435\u043d \u0440\u0430\u0431\u043e\u0442\u043e\u0434\u0430\u0442\u0435\u043b\u044e", "ok"); })
-      .catch(function (error) { P.toast("\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043e\u0442\u043f\u0440\u0430\u0432\u0438\u0442\u044c: " + error.message, "bad"); });
-  }
-
-  function finish() {
-    if (S.finished) return;
-    S.finished = true;
-    if (S.demo) { renderProtocol(buildDemoProtocol()); return; }
-    P.engine.finish(S.id).then(function (payload) {
-      var protocol = pick(payload, ["protocol"], payload);
-      renderProtocol(protocol || buildDemoProtocol());
-    }).catch(function (error) {
-      P.toast("\u0421\u0435\u0440\u0432\u0435\u0440 \u043d\u0435 \u0432\u044b\u0434\u0430\u043b \u043f\u0440\u043e\u0442\u043e\u043a\u043e\u043b: " + error.message, "bad", 5000);
-      renderProtocol(buildDemoProtocol());
-    });
-  }
-
-  /* ---------- старт ---------- */
-  function startDemo() {
-    S.demo = true;
-    var saved = null;
-    try { saved = JSON.parse(sessionStorage.getItem("pruf.demoSession") || "null"); } catch (error) { saved = null; }
-    var promise = (saved && saved.analysis)
-      ? Promise.resolve({ analysis: saved.analysis, meta: saved.meta || {} })
-      : P.demoData().then(function (data) { return { analysis: data.analysis, meta: { candidate: "\u0413\u043e\u0441\u0442\u044c", task: (data.tasks || [])[0] ? data.tasks[0].title : "" } }; });
-    return promise.then(function (bundle) {
-      S.analysis = bundle.analysis;
-      S.meta = bundle.meta || {};
-      S.questions = buildDemoQuestions(S.analysis || {});
-      if (!S.questions.length) throw new Error("\u041d\u0435\u0442 \u043c\u0443\u0442\u0430\u0446\u0438\u0439 \u0434\u043b\u044f \u0432\u043e\u043f\u0440\u043e\u0441\u043e\u0432");
-      var banner = $("#session-mode");
-      if (banner) {
-        banner.hidden = false;
-        banner.innerHTML = "\u0414\u0435\u043c\u043e-\u0440\u0435\u0436\u0438\u043c: \u0432\u043e\u043f\u0440\u043e\u0441\u044b \u0441\u043e\u0431\u0440\u0430\u043d\u044b \u0432 \u0431\u0440\u0430\u0443\u0437\u0435\u0440\u0435 \u0438\u0437 \u0441\u043d\u0438\u043c\u043a\u0430 \u0430\u043d\u0430\u043b\u0438\u0437\u0430. \u0417\u0430\u043f\u0443\u0441\u0442\u0438\u0442\u0435 <code>python3 -m engine.cli serve</code>, \u0447\u0442\u043e\u0431\u044b \u0441\u0435\u0441\u0441\u0438\u044e \u0432\u0451\u043b \u0434\u0432\u0438\u0436\u043e\u043a.";
-      }
-      paintQuestion();
-      startTimer();
-    });
-  }
-
-  function startLive(id) {
-    S.id = id;
-    return P.engine.sessionGet(id).then(function (session) {
-      if (session.__demo) return startDemo();
-      S.questions = session.questions || [];
-      S.meta = session.meta || {};
-      S.analysis = session.analysis || null;
-      S.left = pick(session, ["seconds_left", "left_seconds"], TOTAL_SECONDS);
-      paintQuestion();
-      startTimer();
-    });
-  }
-
-  P.ready(function () {
-    if (!$("#question")) return;
-    var id = param("id");
-    var demo = param("demo");
-    var boot = (id && !demo) ? startLive(id) : startDemo();
-    boot.catch(function (error) {
-      var host = $("#question");
-      if (host) {
-        host.innerHTML = "";
-        host.appendChild(el("div", { class: "card" }, [
-          el("h2", { text: "\u0421\u0435\u0441\u0441\u0438\u044e \u043d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043e\u0442\u043a\u0440\u044b\u0442\u044c" }),
-          el("p", { class: "muted", text: error.message }),
-          el("a", { class: "btn", href: "studio.html", text: "\u041f\u0435\u0440\u0435\u0439\u0442\u0438 \u0432 \u0441\u0442\u0443\u0434\u0438\u044e \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438" })
-        ]));
-      }
-    });
-    var stop = $("#btn-finish");
-    if (stop) stop.addEventListener("click", function () { finish(); });
-  });
-})(window);
+	if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init)
+	else init()
+})()
