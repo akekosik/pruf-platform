@@ -1,135 +1,190 @@
 <!doctype html>
 <html lang="ru">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ПРУФ · студия проверки кода</title>
-<link rel="stylesheet" href="css/app.css">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Студия проверки кода — ПРУФ</title>
+<meta name="description" content="Напишите своё решение и тесты, прогоните их в изолированной песочнице и посмотрите, какие мутации ваши тесты не заметят." />
+<link rel="stylesheet" href="/css/app.css" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23ff3b5c'/%3E%3Ctext x='16' y='22' font-family='monospace' font-size='16' font-weight='bold' text-anchor='middle' fill='%23140609'%3EP%3C/text%3E%3C/svg%3E" />
 </head>
 <body>
 
 <header class="nav">
-  <a class="brand" href="index.html"><span class="brand__slash">/</span> ПРУФ</a>
-  <nav class="nav__links">
-    <a href="index.html">Главная</a>
-    <a href="studio.html">Проверка кода</a>
-    <a href="session.html?demo=1">Сессия защиты</a>
-    <a href="employer.html">Кабинет работодателя</a>
-    <a href="candidate.html">Кабинет кандидата</a>
-  </nav>
-  <div class="nav__actions">
-    <span class="enginebar" data-engine-badge></span>
-  </div>
+	<div class="container nav-inner">
+		<a class="logo" href="/index.html"><span class="logo-mark">P</span> ПРУФ</a>
+		<nav class="nav-links">
+			<a class="nav-link" href="/index.html">Главная</a>
+			<a class="nav-link" href="/studio.html">Проверка кода</a>
+			<a class="nav-link" href="/session.html?demo=1">Сессия защиты</a>
+			<a class="nav-link" href="/employer.html">Работодателю</a>
+			<a class="nav-link" href="/candidate.html">Кандидату</a>
+			<a class="nav-link" href="/docs.html">Документация</a>
+		</nav>
+		<div class="row" style="gap: 10px">
+			<a class="btn btn-quiet btn-sm" href="/docs.html#api">API</a>
+			<button class="nav-burger" type="button" aria-label="Меню">≡</button>
+		</div>
+	</div>
 </header>
 
-<main class="page">
+<div class="app">
+	<aside class="side">
+		<h5>Задание</h5>
+		<label class="field">
+			<span>Шаблон задачи</span>
+			<select class="select" id="taskSelect"><option value="">Загрузка…</option></select>
+		</label>
+		<p class="tiny dim" id="taskMeta">—</p>
+		<div class="row" style="gap: 8px; flex-wrap: wrap">
+			<button class="btn btn-quiet btn-sm" type="button" id="btnLoadTask">Эталонные тесты</button>
+			<button class="btn btn-quiet btn-sm" type="button" id="btnWeakTests">Слабые тесты</button>
+			<button class="btn btn-quiet btn-sm" type="button" id="btnClearAll">Очистить</button>
+		</div>
 
-  <section class="page__head reveal">
-    <h1>Студия проверки кода</h1>
-    <p class="section__lead">Пишите своё решение и свои тесты. Движок прогоняет тесты в изоляторе, строит мутации именно вашего кода и показывает, какие правки ваш набор тестов не заметит.</p>
-  </section>
+		<h5>Шаги проверки</h5>
+		<div class="stepper" id="stepper">
+			<div class="stepper-item is-active" data-step="1"><i>1</i><span>Решение и тесты</span></div>
+			<div class="stepper-item" data-step="2"><i>2</i><span>Прогон в песочнице</span></div>
+			<div class="stepper-item" data-step="3"><i>3</i><span>Мутации решения</span></div>
+			<div class="stepper-item" data-step="4"><i>4</i><span>Сессия защиты</span></div>
+		</div>
 
-  <section class="toolbar reveal" data-delay="60">
-    <label class="field field--inline">
-      <span>Задача</span>
-      <select id="task-select"></select>
-    </label>
-    <label class="field field--inline">
-      <span>Кандидат</span>
-      <input id="candidate-name" value="Анна Коробкова" placeholder="Имя для протокола">
-    </label>
-    <label class="field field--inline">
-      <span>Вакансия</span>
-      <input id="vacancy-name" value="Python-разработчик" placeholder="Необязательно">
-    </label>
-    <div class="row row--wrap">
-      <button class="btn btn--quiet btn--sm" type="button" id="btn-reset">Сбросить к эталону</button>
-      <button class="btn btn--quiet btn--sm" type="button" id="btn-weaken">Ослабить тесты</button>
-      <button class="btn btn--quiet btn--sm" type="button" id="btn-copy">Скопировать код</button>
-      <button class="btn btn--quiet btn--sm" type="button" id="btn-report">Выгрузить отчёт JSON</button>
-    </div>
-  </section>
+		<h5>Условие</h5>
+		<p class="small" id="taskStatement">Выберите шаблон или вставьте свой код — мутации строятся для любого корректного файла на Python.</p>
 
-  <p class="muted reveal" id="task-statement" data-delay="90"></p>
+		<h5>Навыки задачи</h5>
+		<div class="row" style="flex-wrap: wrap; gap: 6px" id="taskSkills"></div>
 
-  <section class="grid grid--2 reveal" data-delay="120">
-    <div class="card card--flat">
-      <div class="row row--between">
-        <h3>Решение · solution.py</h3>
-        <span class="muted">Tab — отступ, Ctrl+Enter — прогон</span>
-      </div>
-      <div class="editor">
-        <pre class="editor__gutter" id="gutter" aria-hidden="true">1</pre>
-        <textarea class="editor__area" id="code" spellcheck="false" rows="22"></textarea>
-      </div>
-    </div>
-    <div class="card card--flat">
-      <div class="row row--between">
-        <h3>Тесты · tests.py</h3>
-        <span class="muted">импорт из <code>solution</code></span>
-      </div>
-      <div class="editor">
-        <textarea class="editor__area" id="tests" spellcheck="false" rows="22"></textarea>
-      </div>
-    </div>
-  </section>
+		<h5>Движок</h5>
+		<p class="tiny dim" id="engineMeta">проверяем…</p>
+		<p class="tiny dim">Решение никуда не уходит: код исполняется локально, без сети и без языковых моделей.</p>
+	</aside>
 
-  <section class="row row--wrap reveal" data-delay="150">
-    <button class="btn" type="button" id="btn-run">Прогнать тесты</button>
-    <button class="btn btn--ghost" type="button" id="btn-mutate">Сломать</button>
-    <button class="btn btn--ghost" type="button" id="btn-analyze">Полный анализ</button>
-    <button class="btn btn--ok" type="button" id="btn-session" disabled>Начать сессию защиты</button>
-  </section>
+	<main class="main">
+		<div class="topbar">
+			<div>
+				<div class="eyebrow">Шаг 1 · песочница и мутации</div>
+				<h2 class="mb-0">Студия проверки кода</h2>
+			</div>
+			<div class="row" style="gap: 10px; flex-wrap: wrap">
+				<button class="btn btn-quiet" type="button" id="btnRun">Прогнать тесты</button>
+				<button class="btn btn-teal" type="button" id="btnMutate">Построить мутации</button>
+				<button class="btn btn-primary" type="button" id="btnAnalyze">Полный анализ</button>
+			</div>
+		</div>
 
-  <section class="grid grid--sidebar reveal" data-delay="180">
-    <div class="card">
-      <h3>Консоль изолятора</h3>
-      <div class="console" id="console"></div>
-      <h3>Набор тестов</h3>
-      <div id="tests-table"></div>
-      <h3>Дыры, которые надо закрыть</h3>
-      <div id="gaps"><p class="muted">Запустите полный анализ.</p></div>
-    </div>
-    <div class="card card--accent">
-      <h3>Оценка набора тестов</h3>
-      <div id="score"><p class="muted">Пока нет данных: нажмите «Полный анализ».</p></div>
-      <h3>Мутации</h3>
-      <div class="mutlist" id="mutations"><p class="muted">Нажмите «Сломать» или «Полный анализ».</p></div>
-    </div>
-  </section>
+		<div class="kpi-grid">
+			<div class="kpi"><b id="kpiTests">—</b><span>Тесты прошли</span></div>
+			<div class="kpi"><b id="kpiScore">—</b><span>Мутационный счёт</span></div>
+			<div class="kpi"><b id="kpiSurvived" class="u-red">—</b><span>Мутаций выжило</span></div>
+			<div class="kpi"><b id="kpiFinger" style="font-size: 15px; font-family: var(--mono)">—</b><span>Отпечаток решения</span></div>
+		</div>
 
-  <section class="section reveal" data-delay="210">
-    <div class="grid grid--3">
-      <div class="card card--flat">
-        <h4>Что значит «прошла незамеченной»</h4>
-        <p class="muted">Код изменён, логика сломана, а все тесты остались зелёными. Именно такие места становятся вопросами-ловушками на сессии.</p>
-      </div>
-      <div class="card card--flat">
-        <h4>Почему базовый прогон должен быть зелёным</h4>
-        <p class="muted">Мутационный балл считается только от работающего решения. Если тесты падают сразу, анализ остановится и скажет об этом прямо.</p>
-      </div>
-      <div class="card card--flat">
-        <h4>Как запустить движок локально</h4>
-        <p class="muted">В корне репозитория: <code>python3 -m engine.cli serve</code>, затем откройте <code>http://127.0.0.1:8000</code>. Без сервера страница работает на демо-снимке.</p>
-      </div>
-    </div>
-  </section>
+		<div class="panel-grid">
+			<div class="stack">
+				<div class="editor">
+					<div class="editor-head">
+						<span>solution.py</span>
+						<span id="codeMeta">0 строк</span>
+					</div>
+					<div class="editor-body">
+						<div class="editor-gutter" id="codeGutter">1</div>
+						<textarea class="editor-area" id="codeArea" spellcheck="false" placeholder="# вставьте своё решение на Python"></textarea>
+					</div>
+				</div>
 
-</main>
+				<div class="editor">
+					<div class="editor-head">
+						<span>test_solution.py</span>
+						<span id="testsMeta">0 строк</span>
+					</div>
+					<div class="editor-body">
+						<div class="editor-gutter" id="testsGutter">1</div>
+						<textarea class="editor-area is-sm" id="testsArea" spellcheck="false" placeholder="from solution import …"></textarea>
+					</div>
+				</div>
 
-<footer class="footer">
-  <div>
-    <p class="brand"><span class="brand__slash">/</span> ПРУФ</p>
-    <p class="muted">Детерминированное ядро: 18 операторов мутаций, изолятор без сети, воспроизводимый вердикт.</p>
-  </div>
-  <div class="footer__links">
-    <a href="index.html">Главная</a>
-    <a href="session.html?demo=1">Сессия защиты</a>
-    <a href="employer.html">Работодателю</a>
-  </div>
-</footer>
+				<div class="card card-pad-sm">
+					<div class="row-between mb-8">
+						<b>Консоль песочницы</b>
+						<button class="btn btn-quiet btn-sm" type="button" id="btnClearConsole">Очистить</button>
+					</div>
+					<div class="console" id="console"><div class="console-line note">Готов к работе. Лимиты: процессорное время, память и размер вывода ограничены, сеть и опасные импорты запрещены.</div></div>
+				</div>
 
-<script src="js/app.js"></script>
-<script src="js/studio.js"></script>
+				<div class="card card-pad-sm hidden" id="verdictCard">
+					<div class="row-between mb-8">
+						<b>Вердикт по набору тестов</b>
+						<span class="verdict" id="verdictChip">—</span>
+					</div>
+					<p class="small mb-0" id="verdictText">—</p>
+					<div class="divider"></div>
+					<div class="table-wrap">
+						<table class="t">
+							<thead><tr><th>Тест</th><th>Статус</th><th>Убито мутаций</th><th>Вердикт</th></tr></thead>
+							<tbody id="testsTable"></tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+
+			<div class="stack">
+				<div class="mut-panel">
+					<div class="mut-panel-head">
+						<div>
+							<b>Мутации вашего решения</b>
+							<div class="tiny dim" id="mutMeta">ещё не построены</div>
+						</div>
+						<span class="chip" id="mutCount">0</span>
+					</div>
+					<div class="mut-list is-tall" id="mutList">
+						<div class="empty">Нажмите «Полный анализ» — и вы увидите, какие правки ваши тесты не заметят.</div>
+					</div>
+				</div>
+
+				<div class="card card-pad-sm">
+					<div class="row-between mb-8">
+						<b id="mutDetailTitle">Мутация не выбрана</b>
+						<span class="mut-status queued" id="mutDetailStatus">—</span>
+					</div>
+					<pre class="diff" id="mutDetailDiff">Выберите мутацию в списке выше</pre>
+					<p class="small mb-0" id="mutDetailNote">Каждая правка — точечная замена по координатам AST и обязательная компиляция мутанта.</p>
+					<div class="row mt-16" style="gap: 8px; flex-wrap: wrap">
+						<button class="btn btn-quiet btn-sm" type="button" id="btnShowLine">Показать строку</button>
+						<button class="btn btn-quiet btn-sm" type="button" id="btnApplyMut">Применить к коду</button>
+						<button class="btn btn-quiet btn-sm" type="button" id="btnUndoMut">Вернуть оригинал</button>
+					</div>
+				</div>
+
+				<div class="card card-pad-sm">
+					<b>Дыры в тестах</b>
+					<div class="stack mt-16" id="gapsList"><p class="tiny dim mb-0">Появятся после полного анализа.</p></div>
+				</div>
+
+				<div class="card card-pad-sm card-glow">
+					<b>Сессия защиты</b>
+					<p class="tiny dim">15 минут, вопросы строятся из строк именно этого решения.</p>
+					<label class="field"><span>Кандидат</span><input class="input" id="sessName" value="Кандидат ПРУФ" /></label>
+					<label class="field"><span>Вакансия</span><input class="input" id="sessVacancy" value="Python-разработчик" /></label>
+					<label class="field">
+						<span>Вопросов в сессии</span>
+						<select class="select" id="sessQuestions">
+							<option value="8">8 — быстрый фильтр</option>
+							<option value="13" selected>13 — стандарт</option>
+							<option value="15">15 — полный разбор</option>
+						</select>
+					</label>
+					<button class="btn btn-primary btn-block" type="button" id="btnSession">Начать 15-минутную защиту</button>
+					<p class="tiny dim mb-0 mt-16" id="sessHint">Ссылка на сессию останется в кабинете кандидата.</p>
+				</div>
+			</div>
+		</div>
+	</main>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+<script src="/js/app.js"></script>
+<script src="/js/studio.js"></script>
 </body>
 </html>
