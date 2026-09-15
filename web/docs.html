@@ -1,0 +1,465 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Документация — ПРУФ</title>
+<meta name="description" content="Как устроена платформа ПРУФ: мутации, песочница, сессия защиты, протокол понимания, API и экономика." />
+<link rel="stylesheet" href="/css/app.css" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23ff3b5c'/%3E%3Ctext x='16' y='22' font-family='monospace' font-size='16' font-weight='bold' text-anchor='middle' fill='%23140609'%3EP%3C/text%3E%3C/svg%3E" />
+<style>
+.docs-grid { display: grid; grid-template-columns: 248px minmax(0, 1fr); gap: 36px; align-items: start; margin-top: 34px; }
+.docs-side { position: sticky; top: 84px; }
+.docs-sec { scroll-margin-top: 92px; padding-top: 6px; }
+.docs-sec + .docs-sec { margin-top: 46px; }
+.docs-sec h2 { margin: 0 0 6px; }
+@media (max-width: 960px) { .docs-grid { grid-template-columns: minmax(0, 1fr); } .docs-side { position: static; } }
+</style>
+</head>
+<body>
+
+<header class="nav">
+	<div class="container nav-inner">
+		<a class="logo" href="/index.html"><span class="logo-mark">P</span> ПРУФ</a>
+		<nav class="nav-links">
+			<a class="nav-link" href="/index.html">Главная</a>
+			<a class="nav-link" href="/studio.html">Проверка кода</a>
+			<a class="nav-link" href="/session.html?demo=1">Сессия защиты</a>
+			<a class="nav-link" href="/employer.html">Работодателю</a>
+			<a class="nav-link" href="/candidate.html">Кандидату</a>
+			<a class="nav-link" href="/docs.html">Документация</a>
+		</nav>
+		<div class="row" style="gap: 10px">
+			<a class="btn btn-quiet btn-sm" href="https://github.com/akekosik/pruf-platform" target="_blank" rel="noopener">GitHub</a>
+			<button class="nav-burger" type="button" aria-label="Меню">≡</button>
+		</div>
+	</div>
+</header>
+
+<main class="container" style="padding: 44px 0 90px">
+
+	<p class="eyebrow">Документация · версия ядра pruf.engine/1</p>
+	<h1 class="mb-0" style="max-width: 780px">Как устроен ПРУФ</h1>
+	<p class="small dim" style="max-width: 760px; margin-top: 12px">
+		Платформа доказывает, что человек понимает код, который принёс. Решение разбирается в AST, из него строятся 9–15 мутаций, тесты прогоняются в изолированной песочнице, а дальше идёт 15-минутная сессия защиты. На выходе — протокол понимания, а не зелёные тесты.
+	</p>
+
+	<div class="stat-strip" style="margin-top: 28px">
+		<div class="stat"><div class="stat-num">18</div><div class="stat-label">операторов мутаций</div></div>
+		<div class="stat"><div class="stat-num">9–15</div><div class="stat-label">мутаций на решение</div></div>
+		<div class="stat"><div class="stat-num">15:00</div><div class="stat-label">сессия защиты</div></div>
+		<div class="stat"><div class="stat-num">0 ₽</div><div class="stat-label">себестоимость проверки</div></div>
+	</div>
+
+	<div class="docs-grid">
+
+		<aside class="side docs-side">
+			<h5>Разделы</h5>
+			<nav class="side-nav" id="docNav">
+				<a class="side-item" href="#start">Быстрый старт</a>
+				<a class="side-item" href="#how">Как это работает</a>
+				<a class="side-item" href="#operators">18 операторов</a>
+				<a class="side-item" href="#sandbox">Песочница</a>
+				<a class="side-item" href="#session">Сессия защиты</a>
+				<a class="side-item" href="#protocol">Протокол</a>
+				<a class="side-item" href="#api">HTTP API</a>
+				<a class="side-item" href="#cli">CLI</a>
+				<a class="side-item" href="#economics">Экономика</a>
+				<a class="side-item" href="#lti">Вузы и Moodle</a>
+				<a class="side-item" href="#privacy">Приватность</a>
+				<a class="side-item" href="#faq">Вопросы</a>
+			</nav>
+			<div class="divider"></div>
+			<button class="btn btn-quiet btn-sm btn-block" type="button" id="btnHealth">Проверить API</button>
+			<p class="tiny dim mono" id="healthOut">статус не запрашивался</p>
+			<a class="btn btn-quiet btn-sm btn-block" href="https://github.com/akekosik/pruf-platform/blob/main/docs/documentation.md" target="_blank" rel="noopener">Полная версия (30 разделов)</a>
+		</aside>
+
+		<div>
+
+			<!-- ------------------------------------------------------ start -->
+			<section class="docs-sec" id="start">
+				<p class="eyebrow">01</p>
+				<h2>Быстрый старт</h2>
+				<p class="small dim">Внешних зависимостей нет. Нужен только Python 3.10+.</p>
+				<div class="code-window">
+					<div class="code-head">
+						<div class="code-dots"><i></i><i></i><i></i></div>
+						<span class="mono tiny dim">bash</span>
+						<button class="btn btn-quiet btn-sm" type="button" data-copy="#snipStart">Копировать</button>
+					</div>
+					<div class="code-body"><pre class="mono" id="snipStart" style="margin:0; white-space:pre-wrap">git clone https://github.com/akekosik/pruf-platform.git
+cd pruf-platform
+python3 -m engine.cli demo          # эталонный прогон ядра
+python3 -m engine.cli serve --port 8000
+# → http://127.0.0.1:8000</pre></div>
+				</div>
+				<div class="row" style="gap: 10px; flex-wrap: wrap; margin-top: 14px">
+					<a class="btn btn-primary btn-sm" href="/studio.html">Открыть студию</a>
+					<a class="btn btn-quiet btn-sm" href="/session.html?demo=1">Демо-сессия защиты</a>
+					<a class="btn btn-quiet btn-sm" href="/employer.html">Кабинет работодателя</a>
+				</div>
+			</section>
+
+			<!-- -------------------------------------------------------- how -->
+			<section class="docs-sec" id="how">
+				<p class="eyebrow">02</p>
+				<h2>Как это работает</h2>
+				<div class="table-wrap">
+					<table class="t">
+						<thead><tr><th>Шаг</th><th>Что происходит</th><th>Результат</th></tr></thead>
+						<tbody>
+							<tr><td class="mono">1</td><td>Кандидат присылает решение и тесты</td><td>Исходник + отпечаток SHA-256</td></tr>
+							<tr><td class="mono">2</td><td>Разбор в AST, поиск точек мутации</td><td>Список точек с привязкой к строке</td></tr>
+							<tr><td class="mono">3</td><td>Побайтовая склейка мутанта, проверка компиляции, дедуп</td><td><span class="mono">M01…M15</span></td></tr>
+							<tr><td class="mono">4</td><td>Прогон тестов по каждому мутанту в песочнице</td><td><span class="chip chip-teal">killed</span> / <span class="chip chip-red">survived</span></td></tr>
+							<tr><td class="mono">5</td><td>Сборка вопросов из конкретных строк</td><td>6–15 вопросов, 4 типа</td></tr>
+							<tr><td class="mono">6</td><td>Сессия защиты 15 минут</td><td>Ответы с таймингом</td></tr>
+							<tr><td class="mono">7</td><td>Градация по 8 навыкам и сборка протокола</td><td>JSON + PDF + текст</td></tr>
+						</tbody>
+					</table>
+				</div>
+				<div class="card card-pad-sm" style="margin-top: 16px">
+					<div class="row-between">
+						<b class="small">Эталонный прогон ядра</b>
+						<button class="btn btn-teal btn-sm" type="button" id="btnDemo">Прогнать демо</button>
+					</div>
+					<p class="tiny dim" style="margin-top: 8px">Те же числа даёт команда <span class="mono">python3 -m engine.cli demo</span>. Расхождение означает изменение ядра.</p>
+					<div id="demoOut" class="mt-8"></div>
+				</div>
+			</section>
+
+			<!-- -------------------------------------------------- operators -->
+			<section class="docs-sec" id="operators">
+				<p class="eyebrow">03</p>
+				<h2>Каталог из 18 операторов</h2>
+				<p class="small dim">Каждый оператор отобран по одному критерию: правка правдоподобна как человеческая ошибка и её легко не заметить глазами.</p>
+				<div class="row" style="gap: 10px; flex-wrap: wrap; margin-bottom: 12px">
+					<button class="btn btn-quiet btn-sm" type="button" id="btnCatalog">Загрузить из <span class="mono">/api/catalog</span></button>
+					<span class="tiny dim" id="catalogMeta">данные из живого ядра</span>
+				</div>
+				<div id="catalogOut" class="empty">Нажмите кнопку выше — таблица соберётся из ответа API.</div>
+			</section>
+
+			<!-- ---------------------------------------------------- sandbox -->
+			<section class="docs-sec" id="sandbox">
+				<p class="eyebrow">04</p>
+				<h2>Песочница выполнения</h2>
+				<p class="small dim">Запуск чужого кода — главный риск платформы. Изоляция построена слоями.</p>
+				<div class="table-wrap">
+					<table class="t">
+						<thead><tr><th>Слой</th><th>Как сделано</th></tr></thead>
+						<tbody>
+							<tr><td>Процесс</td><td class="mono">python -I -S</td></tr>
+							<tr><td>Файловая система</td><td>Временный каталог, удаляется после прогона</td></tr>
+							<tr><td>Окружение</td><td class="mono">PYTHONHASHSEED=0</td></tr>
+							<tr><td>Время</td><td>таймаут 10 с, RLIMIT_CPU 5 с</td></tr>
+							<tr><td>Память</td><td>RLIMIT_AS 512 МБ</td></tr>
+							<tr><td>Импорты</td><td>Блок-лист сети, процессов и системных вызовов</td></tr>
+							<tr><td>Канал результата</td><td>Одна JSON-строка после маркера <span class="mono">__PRUF__</span></td></tr>
+							<tr><td>Кэш</td><td>SHA-256(код + тесты + лимиты), 512 записей</td></tr>
+						</tbody>
+					</table>
+				</div>
+				<p class="tiny dim" style="margin-top: 10px">Честное ограничение: это изоляция уровня процесса. В продакшене слой заворачивается в контейнер с seccomp и сетевой политикой deny-all; интерфейс модуля не меняется.</p>
+			</section>
+
+			<!-- ---------------------------------------------------- session -->
+			<section class="docs-sec" id="session">
+				<p class="eyebrow">05</p>
+				<h2>Сессия защиты</h2>
+				<div class="grid grid-2">
+					<div class="card card-pad-sm">
+						<b class="small">Константы</b>
+						<ul class="list small dim">
+							<li>Длительность — 900 секунд</li>
+							<li>Вопросов — от 6 до 15, по умолчанию 13</li>
+							<li>На одну мутацию — не больше 2 вопросов</li>
+							<li>Порядок вариантов — детерминированный сид</li>
+						</ul>
+					</div>
+					<div class="card card-pad-sm">
+						<b class="small">Четыре типа вопросов</b>
+						<ul class="list small dim">
+							<li><span class="mono">danger</span> — какая правка опасна (вес 1,2)</li>
+							<li><span class="mono">gap</span> — какой тест поймает (вес 1,3)</li>
+							<li><span class="mono">first_failure</span> — что упадёт первым</li>
+							<li><span class="mono">consequence</span> — что будет на таком входе</li>
+						</ul>
+					</div>
+				</div>
+				<p class="small dim" style="margin-top: 14px">
+					В каждом вопросе есть две ловушки: «Ни один тест не заметит правку» и «Прогон упадёт целиком». Без них ответ угадывается методом исключения. Клиенту отдаётся проекция без правильных ответов — они не покидают сервер до завершения.
+				</p>
+			</section>
+
+			<!-- --------------------------------------------------- protocol -->
+			<section class="docs-sec" id="protocol">
+				<p class="eyebrow">06</p>
+				<h2>Протокол понимания</h2>
+				<p class="small dim">Главный артефакт продукта. Не оценка, а разбор по строкам и навыкам.</p>
+				<div class="table-wrap">
+					<table class="t">
+						<thead><tr><th>Порог</th><th>Значение</th><th>Смысл</th></tr></thead>
+						<tbody>
+							<tr><td><span class="verdict control">контролирует</span></td><td class="mono">≥ 0,80</td><td>Навык подтверждён</td></tr>
+							<tr><td><span class="verdict shaky">шатко</span></td><td class="mono">≥ 0,50</td><td>Знает, но плавает</td></tr>
+							<tr><td><span class="verdict none">не контролирует</span></td><td class="mono">&lt; 0,50</td><td>Зона риска</td></tr>
+							<tr><td>Порог допуска</td><td class="mono">70 %</td><td>Настраивается компанией и печатается в протоколе</td></tr>
+						</tbody>
+					</table>
+				</div>
+				<p class="small dim" style="margin-top: 12px">Восемь осей навыков: <span class="mono">boundary, logic, arithmetic, strings, io, errors, collections, flow</span>. Протокол выгружается в PDF и в текст — второй формат нужен для закрытого контура.</p>
+			</section>
+
+			<!-- -------------------------------------------------------- api -->
+			<section class="docs-sec" id="api">
+				<p class="eyebrow">07</p>
+				<h2>HTTP API</h2>
+				<p class="small dim">Базовый префикс <span class="mono">/api</span>. Ошибки — <span class="mono">{"ok": false, "error": "…", "status": …}</span>. Лимит тела запроса 400 КБ.</p>
+				<div class="table-wrap">
+					<table class="t">
+						<thead><tr><th>Метод</th><th>Маршрут</th><th>Что делает</th></tr></thead>
+						<tbody>
+							<tr><td><span class="chip chip-teal">GET</span></td><td class="mono">/api/health</td><td>Статус, версия, число операторов</td></tr>
+							<tr><td><span class="chip chip-teal">GET</span></td><td class="mono">/api/catalog</td><td>18 операторов мутаций</td></tr>
+							<tr><td><span class="chip chip-teal">GET</span></td><td class="mono">/api/tasks</td><td>Демо-задания</td></tr>
+							<tr><td><span class="chip chip-teal">GET</span></td><td class="mono">/api/candidates</td><td>Пул кандидатов</td></tr>
+							<tr><td><span class="chip chip-teal">GET</span></td><td class="mono">/api/candidates/&lt;id&gt;</td><td>Карточка: сводка, протокол, анализ, код</td></tr>
+							<tr><td><span class="chip chip-teal">GET</span></td><td class="mono">/api/protocol/&lt;id&gt;[.pdf|.txt]</td><td>Протокол в трёх форматах</td></tr>
+							<tr><td><span class="chip chip-teal">GET</span></td><td class="mono">/api/economics</td><td>Юнит-экономика и безубыточность</td></tr>
+							<tr><td><span class="chip chip-teal">GET</span></td><td class="mono">/api/demo</td><td>Полный демо-прогон одним запросом</td></tr>
+							<tr><td><span class="chip chip-amber">POST</span></td><td class="mono">/api/mutations</td><td><span class="mono">{code, limit}</span> → превью мутаций без прогона</td></tr>
+							<tr><td><span class="chip chip-amber">POST</span></td><td class="mono">/api/run</td><td><span class="mono">{code, tests}</span> → прогон в песочнице</td></tr>
+							<tr><td><span class="chip chip-amber">POST</span></td><td class="mono">/api/analyze</td><td><span class="mono">{code, tests, limit}</span> → мутации + прогон + score</td></tr>
+							<tr><td><span class="chip chip-amber">POST</span></td><td class="mono">/api/session/start</td><td>Создаёт сессию защиты</td></tr>
+							<tr><td><span class="chip chip-amber">POST</span></td><td class="mono">/api/session/&lt;id&gt;/answer</td><td>Принимает ответ</td></tr>
+							<tr><td><span class="chip chip-amber">POST</span></td><td class="mono">/api/session/&lt;id&gt;/finish</td><td>Завершает и собирает протокол</td></tr>
+						</tbody>
+					</table>
+				</div>
+				<div class="code-window" style="margin-top: 16px">
+					<div class="code-head">
+						<div class="code-dots"><i></i><i></i><i></i></div>
+						<span class="mono tiny dim">curl</span>
+						<button class="btn btn-quiet btn-sm" type="button" data-copy="#snipApi">Копировать</button>
+					</div>
+					<div class="code-body"><pre class="mono" id="snipApi" style="margin:0; white-space:pre-wrap">curl -s localhost:8000/api/health
+
+curl -s localhost:8000/api/analyze \
+  -H 'Content-Type: application/json' \
+  -d '{"code": "def f(x):\n    return x > 0\n", "tests": "from solution import f\n\ndef test_f():\n    assert f(1)\n", "limit": 12}'</pre></div>
+				</div>
+				<p class="tiny dim" style="margin-top: 10px"><span class="mono">/api/analyze</span> требует непустой <span class="mono">code</span>: на пустом теле вернётся ошибка 400 «Пустой код решения».</p>
+			</section>
+
+			<!-- -------------------------------------------------------- cli -->
+			<section class="docs-sec" id="cli">
+				<p class="eyebrow">08</p>
+				<h2>CLI</h2>
+				<p class="small dim">Не обёртка для удобства, а основной интерфейс для закрытого контура, где веб-сервер поднимать не разрешат.</p>
+				<div class="code-window">
+					<div class="code-head">
+						<div class="code-dots"><i></i><i></i><i></i></div>
+						<span class="mono tiny dim">engine.cli</span>
+						<button class="btn btn-quiet btn-sm" type="button" data-copy="#snipCli">Копировать</button>
+					</div>
+					<div class="code-body"><pre class="mono" id="snipCli" style="margin:0; white-space:pre-wrap">python3 -m engine.cli catalog
+python3 -m engine.cli mutate solution.py --limit 12
+python3 -m engine.cli run solution.py tests.py
+python3 -m engine.cli analyze solution.py tests.py --limit 12
+python3 -m engine.cli session solution.py tests.py
+python3 -m engine.cli demo
+python3 -m engine.cli economics
+python3 -m engine.cli serve --port 8000</pre></div>
+				</div>
+				<p class="tiny dim" style="margin-top: 10px">Автотесты ядра: <span class="mono">python3 -m unittest discover -s tests -v</span></p>
+			</section>
+
+			<!-- -------------------------------------------------- economics -->
+			<section class="docs-sec" id="economics">
+				<p class="eyebrow">09</p>
+				<h2>Экономика</h2>
+				<div class="table-wrap">
+					<table class="t">
+						<thead><tr><th>Линия</th><th>Цена</th><th>Комментарий</th></tr></thead>
+						<tbody>
+							<tr><td>Верификация кандидата</td><td class="mono">1 200–1 800 ₽</td><td>Против 2–4 часов senior-инженера</td></tr>
+							<tr><td>Подписка компании</td><td class="mono">90 000–250 000 ₽/год</td><td>100–300 верификаций + карта пробелов</td></tr>
+							<tr><td>On-premise</td><td class="mono">400 000–900 000 ₽/год</td><td>Закрытый контур, без сети</td></tr>
+							<tr><td>Вузы и СПО</td><td class="mono">0 ₽</td><td>Канал и источник данных</td></tr>
+						</tbody>
+					</table>
+				</div>
+				<div class="row" style="gap: 10px; flex-wrap: wrap; margin: 14px 0">
+					<button class="btn btn-quiet btn-sm" type="button" id="btnEco">Посчитать через <span class="mono">/api/economics</span></button>
+				</div>
+				<div id="ecoOut" class="empty">Цифры считаются ядром, а не зашиты в вёрстку.</div>
+				<p class="small dim" style="margin-top: 14px">
+					Безубыточность — 800–900 верификаций в год, то есть 3–5 активных компаний при постоянных затратах ≈ 1,2 млн ₽. Сравнение «0 ₽ против 10,14 ₽ у LLM» относится к себестоимости и марже, а не к ценности для покупателя.
+				</p>
+			</section>
+
+			<!-- -------------------------------------------------------- lti -->
+			<section class="docs-sec" id="lti">
+				<p class="eyebrow">10</p>
+				<h2>Вузы и Moodle</h2>
+				<div class="card card-pad-sm">
+					<p class="small mb-0"><b>Мы не заменяем Moodle.</b> Мы закрываем дыру, которую Moodle закрыть не может: он не умеет отличить понимание от сданного задания.</p>
+				</div>
+				<div class="table-wrap" style="margin-top: 14px">
+					<table class="t">
+						<thead><tr><th>Механизм</th><th>Роль</th></tr></thead>
+						<tbody>
+							<tr><td class="mono">LTI 1.3 Advantage</td><td>Запуск проверки прямо из курса</td></tr>
+							<tr><td class="mono">AGS</td><td>Оценка возвращается в журнал курса</td></tr>
+							<tr><td class="mono">NRPS</td><td>Состав группы подтягивается автоматически</td></tr>
+						</tbody>
+					</table>
+				</div>
+				<p class="small dim" style="margin-top: 12px">Вуз не платит ничего: он поставщик трафика и данных для калибровки сложности. Внедрение идёт через приказ по кафедре, а не через закупку.</p>
+			</section>
+
+			<!-- ---------------------------------------------------- privacy -->
+			<section class="docs-sec" id="privacy">
+				<p class="eyebrow">11</p>
+				<h2>Приватность</h2>
+				<div class="grid grid-2">
+					<div class="card card-pad-sm"><b class="small">Без прокторинга</b><p class="tiny dim mb-0">Ни камеры, ни записи экрана, ни биометрии. Проверяется содержание, а не поведение.</p></div>
+					<div class="card card-pad-sm"><b class="small">Протокол — у кандидата</b><p class="tiny dim mb-0">Он видит его целиком и переиспользует в других компаниях.</p></div>
+					<div class="card card-pad-sm"><b class="small">Нет вызовов LLM</b><p class="tiny dim mb-0">Код кандидата не уходит во внешние модели и вообще за периметр.</p></div>
+					<div class="card card-pad-sm"><b class="small">Минимум данных</b><p class="tiny dim mb-0">Для проверки нужны имя и код. Ни паспорта, ни селфи, ни телефона.</p></div>
+				</div>
+			</section>
+
+			<!-- -------------------------------------------------------- faq -->
+			<section class="docs-sec" id="faq">
+				<p class="eyebrow">12</p>
+				<h2>Частые вопросы</h2>
+				<div class="stack">
+					<div class="faq-item">
+						<button class="faq-q" type="button">Почему это нельзя обойти ассистентом?</button>
+						<div class="faq-a">Вопросы строятся из конкретных строк конкретного решения и живут 15 минут. Чтобы списать, внешней модели нужно получить и код, и тесты, и мутации, и ответить быстрее человека — таймер и привязка к строке это ломают.</div>
+					</div>
+					<div class="faq-item">
+						<button class="faq-q" type="button">Что значит «выживший мутант»?</button>
+						<div class="faq-a">Это дыра в наборе тестов: правка меняет поведение, но ни один тест этого не заметил. Именно из таких мутаций получаются самые сильные вопросы.</div>
+					</div>
+					<div class="faq-item">
+						<button class="faq-q" type="button">Как разбирается апелляция?</button>
+						<div class="faq-a">Пересчётом. В протоколе есть отпечаток кода и команда воспроизведения: тот же набор мутаций строится заново и даёт тот же результат.</div>
+					</div>
+					<div class="faq-item">
+						<button class="faq-q" type="button">Работает ли без интернета?</button>
+						<div class="faq-a">Да. Ядро не делает исходящих запросов и не вызывает LLM. Это условие для работы в закрытом контуре.</div>
+					</div>
+					<div class="faq-item">
+						<button class="faq-q" type="button">Как добавить второй язык?</button>
+						<div class="faq-a">Нужен парсер с координатами узлов и отображение 18 операторов на конструкции языка. Где AST недоступен — текстовые шаблоны с обязательной проверкой компиляции.</div>
+					</div>
+				</div>
+			</section>
+
+			<div class="divider" style="margin: 40px 0 20px"></div>
+			<div class="row" style="gap: 10px; flex-wrap: wrap">
+				<a class="btn btn-primary" href="/studio.html">Попробовать на своём коде</a>
+				<a class="btn btn-quiet" href="https://github.com/akekosik/pruf-platform/blob/main/docs/documentation.md" target="_blank" rel="noopener">Полная документация</a>
+			</div>
+
+		</div>
+	</div>
+</main>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script src="/js/app.js"></script>
+<script>
+(function () {
+	"use strict"
+	var P = window.PRUF || {}
+	var esc = P.esc || function (s) { return String(s == null ? "" : s) }
+	function $(id) { return document.getElementById(id) }
+	function toast(m, k) { if (P.toast) P.toast(m, k) }
+
+	/* ------------------------------------------------ копирование сниппетов */
+	var copyBtns = document.querySelectorAll("[data-copy]")
+	for (var i = 0; i < copyBtns.length; i++) {
+		;(function (btn) {
+			btn.addEventListener("click", function () {
+				var node = document.querySelector(btn.getAttribute("data-copy"))
+				if (!node) return
+				if (P.copy) P.copy(node.textContent)
+				else toast("Копирование недоступно", "bad")
+			})
+		})(copyBtns[i])
+	}
+
+	/* -------------------------------------------------------- подсветка меню */
+	var items = document.querySelectorAll("#docNav .side-item")
+	var secs = document.querySelectorAll(".docs-sec")
+	function mark() {
+		var best = null, bestTop = -1e9
+		for (var i = 0; i < secs.length; i++) {
+			var top = secs[i].getBoundingClientRect().top - 110
+			if (top <= 0 && top > bestTop) { bestTop = top; best = secs[i].id }
+		}
+		if (!best && secs.length) best = secs[0].id
+		for (var j = 0; j < items.length; j++) {
+			var on = items[j].getAttribute("href") === "#" + best
+			items[j].classList[on ? "add" : "remove"]("is-active")
+		}
+	}
+	window.addEventListener("scroll", mark, { passive: true })
+	mark()
+
+	/* ------------------------------------------------------------ здоровье API */
+	$("btnHealth").addEventListener("click", function () {
+		$("healthOut").textContent = "запрос…"
+		fetch("/api/health")
+			.then(function (r) { return r.json() })
+			.then(function (d) {
+				$("healthOut").textContent = (d.ok ? "ok · " : "ошибка · ") + (d.version || "") + " · " + (d.operators || 18) + " операторов"
+				toast("Ядро отвечает", "good")
+			})
+			["catch"](function () {
+				$("healthOut").textContent = "сервер недоступен"
+				toast("Сервер недоступен", "bad")
+			})
+	})
+
+	/* ------------------------------------------------------------- каталог */
+	$("btnCatalog").addEventListener("click", function () {
+		$("catalogOut").textContent = "загрузка…"
+		fetch("/api/catalog")
+			.then(function (r) { return r.json() })
+			.then(function (d) {
+				var rows = d.operators || d.catalog || d.items || (Array.isArray(d) ? d : [])
+				if (!rows.length) { $("catalogOut").textContent = "пусто"; return }
+				var html = '<div class="table-wrap"><table class="t"><thead><tr><th>Код</th><th>Что делает</th><th>Навык</th></tr></thead><tbody>'
+				for (var i = 0; i < rows.length; i++) {
+					var r = rows[i]
+					html +=
+						"<tr><td class=\"mono\">" + esc(r.id || r.code || r.operator || "") + "</td><td>" +
+						esc(r.title || r.label || r.description || r.what || "") + "</td><td><span class=\"chip chip-blue\">" +
+						esc(r.skill || r.skill_title || "—") + "</span></td></tr>"
+				}
+				html += "</tbody></table></div>"
+				$("catalogOut").className = ""
+				$("catalogOut").innerHTML = html
+				$("catalogMeta").textContent = "загружено операторов: " + rows.length
+				toast("Каталог загружен", "good")
+			})
+			["catch"](function () {
+				$("catalogOut").textContent = "не удалось загрузить каталог"
+				toast("Сервер недоступен", "bad")
+			})
+	})
+
+	/* ---------------------------------------------------------------- демо */
+	$("btnDemo").addEventListener("click", function () {
+		$("demoOut").innerHTML = '<p class="tiny dim">прогон…</p>'
+		fetch("/api/demo")
+			.then(function (r) { return r.json() })
+			.then(function (d) {
+				var a = d.analysis || d.result || d
+	
