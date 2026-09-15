@@ -4,13 +4,15 @@
  *   python3 -m engine.cli serve --port 8777 &
  *   node tools/qa_browser.js --base http://127.0.0.1:8777 --out /data/qa [--only landing]
  *
- * Что делает на каждой странице:
- *   1. загружает, пролистывает до конца (чтобы сработали reveal-анимации) и снимает скриншот 1440px;
- *   2. то же на 390px + ищет горизонтальную прокрутку и виновные элементы;
- *   3. кликает каждую видимую кнопку на десктопе, каждый раз на свежей странице;
- *   4. добирает кнопки, которые есть только в мобильной верстке (бургер и прочее), в контексте 390px.
+ * На каждой странице:
+ *   1. загрузка, пролистывание до конца (чтобы сработали reveal-анимации), скриншот 1440px;
+ *   2. то же на 390px + две разные проверки верстки:
+ *        • страница реально ездит вбок (window.scrollX после scrollTo);
+ *        • контент обрезан за краем экрана (элементы вне viewport без скроллируемого предка);
+ *   3. клик по каждой видимой кнопке на десктопе, каждый раз на свежей странице;
+ *   4. добор кнопок, которые есть только в мобильной верстке (бургер и прочее) — в контексте 390px.
  *
- * Клик, перекрытый открытым модальным окном, — не ошибка, а ожидаемое поведение (помечается skip).
+ * Клик, перекрытый открытым модальным окном, — не ошибка, а ожидаемое поведение (пометка skip).
  * Код возврата 0 — всё чисто, 1 — есть падения, 2 — прогон не стартовал.
  */
 
@@ -112,23 +114,47 @@ async function scrollThrough(page) {
 	await page.waitForTimeout(700)
 }
 
-async function offenders(page) {
+/**
+ * Две разные боли вместо одной неточной метрики scrollWidth:
+ *   scrolledX — страница действительно ездит вбок (видит пользователь);
+ *   cut       — элементы за краем экрана, у которых нет прокручиваемого предка — текст обрезан насовсем.
+ * Код внутри блока с overflow: auto легально выходит за границу — его прокрутит карточка.
+ */
+async function layoutCheck(page) {
 	return page.evaluate(() => {
-		const width = window.innerWidth
-		const out = []
-		document.querySelectorAll("*").forEach((node) => {
-			const rect = node.getBoundingClientRect()
-			if (rect.right > width + 4 || rect.width > width + 4) {
-				const cls =
-					typeof node.className === "string" && node.className.trim()
-						? "." + node.className.trim().split(/\s+/).slice(0, 2).join(".")
-						: ""
-				out.push(
-					node.tagName.toLowerCase() + (node.id ? "#" + node.id : "") + cls + " w=" + Math.round(rect.width),
-				)
+		const W = window.innerWidth
+		const clipRe = /(auto|hidden|scroll|clip)/
+		const clipped = (el) => {
+			let node = el.parentElement
+			while (node && node !== document.body) {
+				const style = getComputedStyle(node)
+				if (clipRe.test(style.overflowX) || clipRe.test(style.overflow)) return true
+				node = node.parentElement
 			}
+			return false
+		}
+		const sel = (el) =>
+			el.tagName.toLowerCase() +
+			(el.id ? "#" + el.id : "") +
+			(typeof el.className === "string" && el.className.trim()
+				? "." + el.className.trim().split(/\s+/).slice(0, 2).join(".")
+				: "")
+		const all = Array.prototype.slice.call(document.querySelectorAll("body *"))
+		const over = all.filter((el) => {
+			const rect = el.getBoundingClientRect()
+			return rect.right > W + 4 && rect.width > 0 && rect.height > 0 && !clipped(el)
 		})
-		return [...new Set(out)].slice(0, 8)
+		const deepest = over.filter((el) => !over.some((other) => other !== el && el.contains(other)))
+		window.scrollTo(2000, 0)
+		const scrolledX = Math.round(window.scrollX)
+		window.scrollTo(0, 0)
+		return {
+			scrolledX,
+			cut: deepest.slice(0, 8).map((el) => {
+				const rect = el.getBoundingClientRect()
+				return sel(el) + " w=" + Math.round(rect.width) + " right=" + Math.round(rect.right)
+			}),
+		}
 	})
 }
 
@@ -210,12 +236,18 @@ async function sweep(context, target, items, label) {
 		} else {
 			process.stdout.write("  ok   загрузка без ошибок (1440px)\n")
 		}
+		const deskLayout = await layoutCheck(desk)
+		if (deskLayout.cut.length) {
+			process.stdout.write("  FAIL контент обрезан за краем экрана (1440px)\n")
+			deskLayout.cut.forEach((line) => process.stdout.write(`        → ${line}\n`))
+			failures.push({ page: target.name, view: "desktop", what: "контент обрезан", errors: deskLayout.cut })
+		}
 		const deskItems = (await collect(desk)).filter((item) => item.visible && !item.disabled)
 		const deskKeys = new Set(deskItems.map(keyOf))
 		await desk.close()
 
 		/* ---------------------------------------------------- мобильный 390px */
-		const mobContext = await browser.newContext({ viewport: MOBILE, isMobile: false })
+		const mobContext = await browser.newContext({ viewport: MOBILE })
 		const mob = await mobContext.newPage()
 		const mobBag = []
 		listen(mob, mobBag)
@@ -223,21 +255,24 @@ async function sweep(context, target, items, label) {
 		await mob.waitForTimeout(1500)
 		await scrollThrough(mob)
 		await mob.screenshot({ path: `${OUT}/${target.name}-mobile.png`, fullPage: true })
-		const overflow = await mob.evaluate(
-			() => document.documentElement.scrollWidth - window.innerWidth,
-		)
-		if (overflow > 4) {
-			const who = await offenders(mob)
-			process.stdout.write(`  FAIL горизонтальная прокрутка на 390px: +${overflow}px\n`)
-			who.forEach((line) => process.stdout.write(`        → ${line}\n`))
+		const mobLayout = await layoutCheck(mob)
+		if (mobLayout.scrolledX > 4) {
+			process.stdout.write(`  FAIL страница ездит вбок на 390px: ${mobLayout.scrolledX}px\n`)
 			failures.push({
 				page: target.name,
 				view: "mobile",
-				what: `горизонтальная прокрутка +${overflow}px`,
-				errors: who,
+				what: `горизонтальная прокрутка ${mobLayout.scrolledX}px`,
+				errors: mobLayout.cut,
 			})
 		} else {
-			process.stdout.write("  ok   без горизонтальной прокрутки на 390px\n")
+			process.stdout.write("  ok   страница не ездит вбок на 390px\n")
+		}
+		if (mobLayout.cut.length) {
+			process.stdout.write("  FAIL контент обрезан за краем экрана (390px)\n")
+			mobLayout.cut.forEach((line) => process.stdout.write(`        → ${line}\n`))
+			failures.push({ page: target.name, view: "mobile", what: "контент обрезан", errors: mobLayout.cut })
+		} else {
+			process.stdout.write("  ok   ничего не обрезано на 390px\n")
 		}
 		const mobItems = (await collect(mob)).filter((item) => item.visible && !item.disabled)
 		const mobileOnly = mobItems.filter((item) => !deskKeys.has(keyOf(item)))
@@ -252,18 +287,12 @@ async function sweep(context, target, items, label) {
 		await mobContext.close()
 	}
 
-	fs.writeFileSync(
-		`${OUT}/report.json`,
-		JSON.stringify({ clicks, failures, skipped }, null, 2),
-		"utf8",
-	)
+	fs.writeFileSync(`${OUT}/report.json`, JSON.stringify({ clicks, failures, skipped }, null, 2), "utf8")
 	process.stdout.write("\n" + "=".repeat(64) + "\n")
 	process.stdout.write(
 		`Кликов проверено: ${clicks} · падений: ${failures.length} · пропущено (модальные окна): ${skipped.length}\n`,
 	)
-	failures.forEach((item) =>
-		process.stdout.write(`  · ${item.page} ${item.view}: ${item.what}\n`),
-	)
+	failures.forEach((item) => process.stdout.write(`  · ${item.page} ${item.view}: ${item.what}\n`))
 	process.stdout.write("=".repeat(64) + "\n")
 	process.exit(failures.length ? 1 : 0)
 })().catch((error) => {

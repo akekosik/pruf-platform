@@ -1,0 +1,28 @@
+/* ============================================================================
+   ПРУФ · fixes.css — точечные правки верстки поверх app.css.
+   Подключается последним в <head> на всех страницах (tools/apply_fixes_2.py).
+   Каждый блок — ответ на конкретную проблему, найденную браузерным QA.
+   ============================================================================ */
+
+/* 1. Длинные строки кода прокручиваются внутри своей карточки, а не тянут страницу. */
+.code-body { overflow-x: auto; max-width: 100%; overscroll-behavior-x: contain; }
+.code-line { min-width: max-content; }
+
+/* 2. Варианты ответа: колонка грида больше не растягивается под min-content кнопки
+      (было: колонка 654px при экране 390px — текст вариантов обрезался). */
+.try-options { grid-template-columns: minmax(0, 1fr); }
+.try-option { min-width: 0; flex-wrap: wrap; }
+.try-option > * { min-width: 0; }
+.try-option code, .mut-sub, .mut-title { overflow-wrap: anywhere; }
+code { overflow-wrap: anywhere; word-break: break-word; }
+
+/* 3. Карточки и строки списков умеют сжиматься внутри гридов и флексов. */
+.card, .panel, .mut-row, .step, .code-window { min-width: 0; }
+
+/* 4. Если JS не загрузился — секции видны без анимации появления. */
+html:not(.has-js) .reveal { opacity: 1 !important; transform: none !important; }
+
+@media (max-width: 620px) {
+	.code-body { font-size: 12px; }
+	.code-line { gap: 10px; padding: 0 12px; }
+}
