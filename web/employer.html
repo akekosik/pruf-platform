@@ -1,131 +1,270 @@
 <!doctype html>
 <html lang="ru">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>ПРУФ · кабинет работодателя</title>
-<link rel="stylesheet" href="css/app.css">
+<meta name="description" content="Кабинет работодателя ПРУФ: пул кандидатов, протоколы понимания, сравнение кандидатов и выгрузка CSV." />
+<link rel="stylesheet" href="/css/app.css" />
+<link rel="stylesheet" href="/css/cabinet.css" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23ff3b5c'/%3E%3Ctext x='16' y='22' font-family='monospace' font-size='16' font-weight='bold' text-anchor='middle' fill='%23140609'%3EP%3C/text%3E%3C/svg%3E" />
 </head>
 <body>
 
 <header class="nav">
-  <a class="brand" href="index.html"><span class="brand__slash">/</span> ПРУФ</a>
-  <nav class="nav__links">
-    <a href="index.html">Главная</a>
-    <a href="studio.html">Проверка кода</a>
-    <a href="session.html?demo=1">Сессия защиты</a>
-    <a href="employer.html">Кабинет работодателя</a>
-    <a href="candidate.html">Кабинет кандидата</a>
-  </nav>
-  <div class="nav__actions">
-    <span class="enginebar" data-engine-badge></span>
-    <button class="btn btn--sm" type="button" data-modal-open="check">Новая проверка</button>
-  </div>
+	<div class="container nav-inner">
+		<a class="logo" href="/index.html"><span class="logo-mark">P</span> ПРУФ</a>
+		<nav class="nav-links">
+			<a class="nav-link" href="/index.html">Главная</a>
+			<a class="nav-link" href="/studio.html">Проверка кода</a>
+			<a class="nav-link" href="/session.html?demo=1">Сессия защиты</a>
+			<a class="nav-link is-active" href="/employer.html">Работодателю</a>
+			<a class="nav-link" href="/candidate.html">Кандидату</a>
+			<a class="nav-link" href="/docs.html">Документация</a>
+		</nav>
+		<button class="btn btn-primary btn-sm" type="button" data-modal-open="modal-check">Новая проверка</button>
+		<button class="nav-burger" type="button" aria-label="Меню">≡</button>
+	</div>
 </header>
 
-<main class="page">
+<main>
+<section class="section-sm">
+	<div class="container-wide cab-shell">
 
-  <section class="page__head reveal">
-    <h1>Кандидаты</h1>
-    <p class="section__lead">Протоколы понимания вместо галочки «тесты прошли»: процент контроля кода, дыры в тестах и цитаты правок, которые человек не заметил.</p>
-  </section>
+		<aside class="side">
+			<p class="eyebrow mb-0">Для работодателей</p>
+			<div class="cab-side-actions">
+				<button class="btn btn-primary btn-sm btn-block" type="button" data-modal-open="modal-check">+ Новая проверка</button>
+			</div>
+			<h5>Вакансии</h5>
+			<div class="side-nav" id="vacNav"><span class="cab-sub">загрузка…</span></div>
+			<h5>Статус проверки</h5>
+			<div class="side-nav" id="statusNav"></div>
+			<h5>Решение по кандидату</h5>
+			<div class="side-nav" id="decisionNav"></div>
+			<div class="divider"></div>
+			<div class="side-nav">
+				<button class="side-item" type="button" data-modal-open="modal-company">Профиль компании</button>
+				<button class="side-item" type="button" data-modal-open="modal-settings">Настройки проверки</button>
+				<a class="side-item" href="/docs.html#api">Документация API</a>
+			</div>
+		</aside>
 
-  <section class="kpi reveal" id="kpi" data-delay="60"></section>
+		<div class="cab-main">
 
-  <section class="toolbar reveal" data-delay="90">
-    <div class="row row--wrap" id="vacancies"></div>
-    <label class="field field--inline">
-      <span>Поиск</span>
-      <input id="search" placeholder="Имя, вакансия, статус">
-    </label>
-    <label class="field field--inline">
-      <span>Сортировка</span>
-      <select id="sort">
-        <option value="control">По контролю кода</option>
-        <option value="risks">По рискам</option>
-        <option value="date">По дате</option>
-      </select>
-    </label>
-    <button class="btn btn--quiet btn--sm" type="button" id="btn-csv">Выгрузить CSV</button>
-  </section>
+			<div class="row row-between">
+				<div>
+					<p class="eyebrow">Кандидаты</p>
+					<h1 class="mb-0" style="font-size: 30px">Протоколы понимания</h1>
+				</div>
+				<span class="chip chip-teal" id="engineChip"><span class="dot"></span> изолятор…</span>
+			</div>
+			<p class="small dim" style="max-width: 760px; margin-top: 10px">
+				Вместо «тесты прошли» — доля кода, которую человек действительно контролирует, дыры в его наборе тестов
+				и цитаты правок, которые он не заметил. Вердикт воспроизводим построчно и считается локально.
+			</p>
 
-  <section class="grid grid--sidebar reveal" data-delay="120">
-    <div class="card">
-      <h3>Пул проверок</h3>
-      <div id="candidates"><p class="muted">Грузим кандидатов…</p></div>
-    </div>
-    <div class="card card--accent" id="detail">
-      <p class="muted">Выберите кандидата, чтобы открыть протокол.</p>
-    </div>
-  </section>
+			<div class="stat-strip" id="kpi" style="margin-top: 22px"></div>
 
-  <section class="section reveal" data-delay="150">
-    <div class="grid grid--3">
-      <div class="card card--flat">
-        <h4>Как читать процент контроля</h4>
-        <p class="muted">Доля верно разобранных вопросов по мутациям своего же кода. Порог допуска — 70 %. Ниже порога — не «плохой кандидат», а конкретный список пробелов к собеседованию.</p>
-      </div>
-      <div class="card card--flat">
-        <h4>Что даёт фильтр до техсобеса</h4>
-        <p class="muted">Одна сессия — 15 минут времени кандидата и ноль времени вашего инженера. На пакете из 20 кандидатов это около 40 сэкономленных часов senior-ревью.</p>
-      </div>
-      <div class="card card--flat">
-        <h4>Спорные случаи</h4>
-        <p class="muted">Каждый вердикт воспроизводим: в протоколе есть отпечаток решения и список мутаций — их можно пересчитать командой CLI и получить те же цифры.</p>
-      </div>
-    </div>
-  </section>
+			<div class="card card-pad-sm cab-toolbar">
+				<input class="input cab-grow" id="search" type="search" placeholder="Имя, вакансия, задача…" aria-label="Поиск по кандидатам" />
+				<select class="select" id="sort" aria-label="Сортировка">
+					<option value="control-desc">Контроль: сначала высокий</option>
+					<option value="control-asc">Контроль: сначала низкий</option>
+					<option value="date-desc">Сначала новые</option>
+					<option value="risks-desc">Больше рисков</option>
+					<option value="name-asc">По имени</option>
+				</select>
+				<button class="btn btn-ghost btn-sm" type="button" id="btnCompare">Сравнить</button>
+				<button class="btn btn-quiet btn-sm" type="button" id="btnCsv">Выгрузить CSV</button>
+			</div>
 
+			<div class="panel-grid" style="margin-top: 18px">
+				<div class="stack">
+					<div class="card">
+						<div class="card-head">
+							<h3 class="card-title mb-0">Пул кандидатов</h3>
+							<span class="cab-sub" id="rowsMeta">—</span>
+						</div>
+						<div class="table-wrap">
+							<table class="cab-table">
+								<thead>
+									<tr id="tableHead">
+										<th class="cab-cmp-col hidden"></th>
+										<th>Кандидат</th>
+										<th>Позиция</th>
+										<th>Дата</th>
+										<th>Контролирует</th>
+										<th>Риски</th>
+										<th>Статус</th>
+									</tr>
+								</thead>
+								<tbody id="candRows">
+									<tr><td colspan="7" class="cab-empty">Грузим кандидатов…</td></tr>
+								</tbody>
+							</table>
+						</div>
+					</div>
+
+					<div class="card hidden" id="cmpCard">
+						<div class="card-head">
+							<h3 class="card-title mb-0">Сравнение кандидатов</h3>
+							<button class="btn btn-quiet btn-sm" type="button" id="cmpClear">Сбросить</button>
+						</div>
+						<div id="cmpBody"><p class="cab-empty mb-0">Отметьте двух кандидатов в таблице.</p></div>
+					</div>
+				</div>
+
+				<div class="cab-detail" id="detail">
+					<div class="card"><p class="cab-empty mb-0">Выберите кандидата в таблице, чтобы открыть протокол понимания.</p></div>
+				</div>
+			</div>
+
+		</div>
+	</div>
+</section>
 </main>
 
 <footer class="footer">
-  <div>
-    <p class="brand"><span class="brand__slash">/</span> ПРУФ</p>
-    <p class="muted">Вебхук в HR-систему, экспорт CSV, LTI 1.3 для вузовского канала.</p>
-  </div>
-  <div class="footer__links">
-    <a href="studio.html">Проверка кода</a>
-    <a href="candidate.html">Кабинет кандидата</a>
-    <a href="index.html#pricing">Тарифы</a>
-  </div>
+	<div class="container row row-between">
+		<span class="small dim">ПРУФ · прототип · всё считается локально, без LLM и без интернета</span>
+		<a class="small" href="/docs.html">Документация</a>
+	</div>
 </footer>
 
-<div class="modal" id="modal-check" hidden>
-  <div class="modal__backdrop" data-modal-close></div>
-  <div class="modal__body">
-    <button class="modal__close" type="button" data-modal-close aria-label="Закрыть">×</button>
-    <h3>Новая проверка</h3>
-    <p class="muted">Ссылка для кандидата: сессия живёт 15 минут после старта, прокторинг не нужен.</p>
-    <form id="new-check">
-      <label class="field"><span>Вакансия</span><select name="vacancy" id="check-vacancy"></select></label>
-      <label class="field"><span>Источник решения</span>
-        <select name="source">
-          <option>Репозиторий или архив</option>
-          <option>Один файл solution.py</option>
-          <option>Кандидат пишет код в студии</option>
-        </select>
-      </label>
-      <label class="field"><span>Язык</span>
-        <select name="language">
-          <option>Python</option>
-          <option>JavaScript (в работе, неделя 8)</option>
-          <option>Java (в работе, неделя 8)</option>
-        </select>
-      </label>
-      <label class="field"><span>Длительность</span>
-        <select name="duration">
-          <option>15 минут · 13 вопросов</option>
-          <option>10 минут · 8 вопросов</option>
-          <option>20 минут · 15 вопросов</option>
-        </select>
-      </label>
-      <button class="btn btn--wide" type="submit">Создать ссылку</button>
-    </form>
-    <div class="row row--wrap" id="check-link" hidden></div>
-  </div>
+<!-- ============================================================ новая проверка -->
+<div class="modal" id="modal-check">
+	<div class="modal-bg" data-modal-close></div>
+	<div class="modal-card">
+		<button class="modal-close" type="button" data-modal-close aria-label="Закрыть">×</button>
+		<p class="eyebrow">Новая проверка</p>
+		<h3 class="card-title">Отправить кандидата на защиту кода</h3>
+
+		<div class="cab-tabs">
+			<button class="cab-tab is-active" type="button" data-ctab="link">Ссылка кандидату</button>
+			<button class="cab-tab" type="button" data-ctab="file">Загрузить решение</button>
+		</div>
+
+		<div class="grid grid-2">
+			<label class="field"><span>Вакансия</span><select class="select" id="checkVacancy"></select></label>
+			<label class="field"><span>Время сессии</span>
+				<select class="select" id="checkMinutes">
+					<option value="15">15 минут (стандарт)</option>
+					<option value="20">20 минут</option>
+					<option value="25">25 минут</option>
+				</select>
+			</label>
+		</div>
+
+		<div data-cpanel="link">
+			<div class="grid grid-2">
+				<label class="field"><span>Имя кандидата</span><input class="input" id="checkName" placeholder="Алексей Морозов" /></label>
+				<label class="field"><span>E-mail кандидата</span><input class="input" id="checkEmail" type="email" placeholder="candidate@example.com" /></label>
+			</div>
+			<div class="cab-actions" style="margin-top: 6px">
+				<button class="btn btn-teal btn-sm" type="button" id="btnLink">Создать ссылку</button>
+				<button class="btn btn-primary btn-sm" type="button" id="btnSendCheck">Отправить кандидату</button>
+			</div>
+			<div class="hidden" id="checkLinkBox" style="margin-top: 14px">
+				<p class="tiny dim mb-8">Ссылка готова — кандидат пишет решение сам, мутации строятся из его кода:</p>
+				<div class="cab-quote" id="checkLink"></div>
+				<div class="cab-actions" style="margin-top: 10px">
+					<button class="btn btn-quiet btn-sm" type="button" id="btnCopyLink">Скопировать</button>
+					<a class="btn btn-ghost btn-sm" id="btnOpenLink" href="/studio.html">Открыть самому</a>
+				</div>
+			</div>
+		</div>
+
+		<div class="hidden" data-cpanel="file">
+			<label class="cab-file" for="checkFile">
+				<b>Выбрать solution.py</b><br />
+				<span class="tiny">файл никуда не уходит: прогон идёт в локальной песочнице</span>
+			</label>
+			<input id="checkFile" type="file" accept=".py,text/x-python,text/plain" class="hidden" />
+			<div class="cab-actions" style="margin-top: 12px">
+				<button class="btn btn-teal btn-sm" type="button" id="btnAnalyze" disabled>Прогнать мутации</button>
+				<span class="tiny dim" id="fileMeta">файл не выбран</span>
+			</div>
+			<div id="analyzeOut" style="margin-top: 14px"></div>
+		</div>
+	</div>
 </div>
 
-<script src="js/app.js"></script>
-<script src="js/employer.js"></script>
+<!-- ========================================================= профиль компании -->
+<div class="modal" id="modal-company">
+	<div class="modal-bg" data-modal-close></div>
+	<div class="modal-card">
+		<button class="modal-close" type="button" data-modal-close aria-label="Закрыть">×</button>
+		<p class="eyebrow">Профиль компании</p>
+		<h3 class="card-title">Как вас видит кандидат</h3>
+		<div class="grid grid-2">
+			<label class="field"><span>Компания</span><input class="input" id="coName" placeholder="ООО «Контур»" /></label>
+			<label class="field"><span>Контакт для кандидатов</span><input class="input" id="coEmail" type="email" placeholder="hr@company.ru" /></label>
+		</div>
+		<label class="field"><span>Строка в приглашении</span><textarea class="textarea" id="coNote" rows="3" placeholder="Проверка занимает 15 минут, камера не нужна."></textarea></label>
+		<div class="cab-actions">
+			<button class="btn btn-primary btn-sm" type="button" id="btnCoSave">Сохранить</button>
+			<button class="btn btn-quiet btn-sm" type="button" data-modal-close>Отмена</button>
+		</div>
+		<p class="tiny dim" style="margin-top: 12px">Профиль хранится в браузере и подставляется в приглашения и в выгрузку CSV.</p>
+	</div>
+</div>
+
+<!-- ======================================================== настройки проверки -->
+<div class="modal" id="modal-settings">
+	<div class="modal-bg" data-modal-close></div>
+	<div class="modal-card">
+		<button class="modal-close" type="button" data-modal-close aria-label="Закрыть">×</button>
+		<p class="eyebrow">Настройки проверки</p>
+		<h3 class="card-title">Пороги и объём</h3>
+		<div class="grid grid-2">
+			<label class="field"><span>Порог допуска, %</span><input class="input" id="setPass" type="number" min="50" max="95" step="5" value="70" /></label>
+			<label class="field"><span>Мутаций на решение</span><input class="input" id="setMuts" type="number" min="9" max="15" value="12" /></label>
+		</div>
+		<label class="field"><span>Язык решений</span>
+			<select class="select" id="setLang">
+				<option value="python">Python · AST-мутации (18 операторов)</option>
+				<option value="js" disabled>JavaScript · в работе (неделя 8 плана)</option>
+			</select>
+		</label>
+		<div class="cab-actions">
+			<button class="btn btn-primary btn-sm" type="button" id="btnSetSave">Сохранить</button>
+			<button class="btn btn-quiet btn-sm" type="button" data-modal-close>Отмена</button>
+		</div>
+		<p class="tiny dim" style="margin-top: 12px">Порог влияет только на подсветку в кабинете. Вердикт в протоколе считает ядро по своим постоянным (70 %).</p>
+	</div>
+</div>
+
+<!-- ====================================================== отправка протокола -->
+<div class="modal" id="modal-send">
+	<div class="modal-bg" data-modal-close></div>
+	<div class="modal-card">
+		<button class="modal-close" type="button" data-modal-close aria-label="Закрыть">×</button>
+		<p class="eyebrow">Протокол понимания</p>
+		<h3 class="card-title" id="sendTitle">Отправить протокол</h3>
+		<label class="field"><span>E-mail получателя</span><input class="input" id="sendEmail" type="email" placeholder="teamlead@company.ru" /></label>
+		<div class="cab-actions">
+			<button class="btn btn-primary btn-sm" type="button" id="btnSendProtocol">Поставить в очередь</button>
+			<button class="btn btn-quiet btn-sm" type="button" data-modal-close>Отмена</button>
+		</div>
+		<p class="tiny dim" style="margin-top: 12px">В прототипе почта не уходит: запись падает в <span class="mono">data/outbox</span> и видна в ответе API.</p>
+	</div>
+</div>
+
+<!-- ============================================================ решение кандидата -->
+<div class="modal" id="modal-code">
+	<div class="modal-bg" data-modal-close></div>
+	<div class="modal-card" style="max-width: 820px">
+		<button class="modal-close" type="button" data-modal-close aria-label="Закрыть">×</button>
+		<p class="eyebrow">Решение кандидата</p>
+		<h3 class="card-title" id="codeTitle">solution.py</h3>
+		<div class="cab-quote" id="codeBody" style="max-height: 420px; overflow: auto"></div>
+	</div>
+</div>
+
+<div class="toast-wrap"></div>
+
+<script src="/js/app.js"></script>
+<script src="/js/employer.js"></script>
 </body>
 </html>

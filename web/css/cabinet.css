@@ -1,0 +1,341 @@
+/* ============================================================================
+   ПРУФ · личные кабинеты (работодатель и кандидат)
+   Дополнение к app.css: только то, чего нет в общей дизайн-системе.
+   Все цвета берутся из токенов :root из app.css.
+   ============================================================================ */
+
+/* ------------------------------------------------------------- раскладка */
+.cab-shell {
+	display: grid;
+	grid-template-columns: 254px minmax(0, 1fr);
+	align-items: start;
+}
+.cab-main {
+	min-width: 0;
+	padding: 4px 0 0 30px;
+}
+.cab-side-actions {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin: 14px 0 6px;
+}
+.cab-toolbar {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	align-items: center;
+	margin-top: 18px;
+}
+.cab-toolbar .input,
+.cab-toolbar .select {
+	margin: 0;
+}
+.cab-toolbar .cab-grow {
+	flex: 1 1 200px;
+	min-width: 160px;
+}
+
+/* ------------------------------------------------------- таблица кандидатов */
+.cab-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 13.5px;
+}
+.cab-table th {
+	text-align: left;
+	padding: 0 12px 10px;
+	font-size: 11px;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	color: var(--text-3);
+	font-weight: 600;
+	white-space: nowrap;
+}
+.cab-table td {
+	padding: 12px;
+	border-top: 1px solid var(--line);
+	vertical-align: middle;
+	color: var(--text-2);
+}
+.cab-table tbody tr {
+	cursor: pointer;
+	transition: background 0.16s ease;
+}
+.cab-table tbody tr:hover {
+	background: rgba(255, 255, 255, 0.04);
+}
+.cab-table tbody tr.is-selected {
+	background: rgba(76, 157, 255, 0.1);
+	box-shadow: inset 3px 0 0 var(--blue);
+}
+.cab-name {
+	color: var(--text);
+	font-weight: 600;
+	display: block;
+}
+.cab-sub {
+	font-size: 11.5px;
+	color: var(--text-3);
+}
+.cab-check {
+	width: 16px;
+	height: 16px;
+	accent-color: var(--blue);
+	cursor: pointer;
+}
+
+/* ------------------------------------------------------------------- полосы */
+.cab-bar {
+	height: 6px;
+	border-radius: 99px;
+	background: rgba(255, 255, 255, 0.08);
+	overflow: hidden;
+	min-width: 74px;
+}
+.cab-bar i {
+	display: block;
+	height: 100%;
+	border-radius: 99px;
+	background: var(--teal);
+	transition: width 0.7s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.cab-bar.mid i {
+	background: var(--amber);
+}
+.cab-bar.low i {
+	background: var(--red);
+}
+.cab-pct {
+	font-family: var(--mono);
+	font-size: 12.5px;
+	color: var(--text);
+	min-width: 40px;
+	display: inline-block;
+}
+
+/* ---------------------------------------------------------------- панель справа */
+.cab-detail {
+	position: sticky;
+	top: 84px;
+}
+.cab-skill {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	gap: 4px 12px;
+	padding: 10px 0;
+	border-bottom: 1px solid var(--line);
+}
+.cab-skill:last-child {
+	border-bottom: 0;
+}
+.cab-skill b {
+	font-size: 13px;
+	color: var(--text);
+	font-weight: 600;
+}
+.cab-skill .cab-bar {
+	grid-column: 1 / -1;
+	margin-top: 4px;
+}
+.cab-risk {
+	border-left: 2px solid var(--red);
+	padding: 4px 0 4px 12px;
+	margin-bottom: 12px;
+}
+.cab-risk:last-child {
+	margin-bottom: 0;
+}
+.cab-risk.is-gap {
+	border-left-color: var(--amber);
+}
+.cab-quote {
+	border: 1px solid var(--line);
+	border-radius: 12px;
+	padding: 12px 14px;
+	background: rgba(8, 17, 26, 0.55);
+	font-family: var(--mono);
+	font-size: 12px;
+	white-space: pre-wrap;
+	overflow-x: auto;
+}
+.cab-quote .del {
+	color: var(--red-2);
+}
+.cab-quote .add {
+	color: var(--teal-2);
+}
+
+/* ----------------------------------------------------------------- таймлайн */
+.cab-tl {
+	display: flex;
+	flex-direction: column;
+	gap: 0;
+}
+.cab-tl-item {
+	display: grid;
+	grid-template-columns: 18px minmax(0, 1fr) auto;
+	gap: 10px;
+	align-items: center;
+	padding: 8px 0;
+	border-bottom: 1px solid var(--line);
+	font-size: 12.5px;
+}
+.cab-tl-item:last-child {
+	border-bottom: 0;
+}
+.cab-tl-dot {
+	width: 9px;
+	height: 9px;
+	border-radius: 50%;
+	background: var(--teal);
+	margin: 0 auto;
+	box-shadow: 0 0 0 3px rgba(45, 224, 165, 0.16);
+}
+.cab-tl-dot.is-miss {
+	background: var(--red);
+	box-shadow: 0 0 0 3px rgba(255, 59, 92, 0.16);
+}
+.cab-tl-time {
+	font-family: var(--mono);
+	font-size: 11.5px;
+	color: var(--text-3);
+}
+
+/* ---------------------------------------------------------------- сравнение */
+.cmp-row {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) 190px minmax(0, 1fr);
+	gap: 12px;
+	align-items: center;
+	padding: 9px 0;
+	border-bottom: 1px solid var(--line);
+}
+.cmp-row:last-child {
+	border-bottom: 0;
+}
+.cmp-skill {
+	text-align: center;
+	font-size: 12.5px;
+	color: var(--text-2);
+}
+.cmp-bar {
+	height: 10px;
+	border-radius: 99px;
+	background: rgba(255, 255, 255, 0.07);
+	position: relative;
+	overflow: hidden;
+}
+.cmp-bar i {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	background: var(--blue);
+	border-radius: 99px;
+	transition: width 0.7s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.cmp-bar.is-left i {
+	right: 0;
+}
+.cmp-bar.is-right i {
+	left: 0;
+	background: var(--teal);
+}
+.cmp-head {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) 190px minmax(0, 1fr);
+	gap: 12px;
+	align-items: end;
+	margin-bottom: 10px;
+}
+
+/* ------------------------------------------------------------------- прочее */
+.cab-empty {
+	padding: 34px 18px;
+	text-align: center;
+	color: var(--text-3);
+	font-size: 13px;
+}
+.cab-kv {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr);
+	gap: 6px 14px;
+	font-size: 12.5px;
+}
+.cab-kv dt {
+	color: var(--text-3);
+}
+.cab-kv dd {
+	margin: 0;
+	color: var(--text-2);
+}
+.cab-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+.cab-file {
+	border: 1px dashed var(--line-2);
+	border-radius: 14px;
+	padding: 22px 18px;
+	text-align: center;
+	color: var(--text-3);
+	font-size: 13px;
+	cursor: pointer;
+	display: block;
+	transition: border-color 0.18s ease, color 0.18s ease;
+}
+.cab-file:hover {
+	border-color: var(--teal);
+	color: var(--text-2);
+}
+.cab-tabs {
+	display: flex;
+	gap: 6px;
+	margin-bottom: 16px;
+	border-bottom: 1px solid var(--line);
+}
+.cab-tab {
+	background: none;
+	border: 0;
+	border-bottom: 2px solid transparent;
+	padding: 8px 12px;
+	color: var(--text-3);
+	font-size: 13px;
+	cursor: pointer;
+}
+.cab-tab.is-active {
+	color: var(--text);
+	border-bottom-color: var(--red);
+}
+
+/* ------------------------------------------------------------------ адаптив */
+@media (max-width: 1140px) {
+	.cab-shell {
+		grid-template-columns: minmax(0, 1fr);
+	}
+	.cab-shell .side {
+		position: static;
+		min-height: 0;
+		border-right: 0;
+		border-bottom: 1px solid var(--line);
+		padding: 18px 0 22px;
+	}
+	.cab-main {
+		padding: 22px 0 0;
+	}
+	.cab-detail {
+		position: static;
+	}
+}
+@media (max-width: 760px) {
+	.cmp-row,
+	.cmp-head {
+		grid-template-columns: minmax(0, 1fr);
+		text-align: left;
+	}
+	.cab-table th:nth-child(3),
+	.cab-table td:nth-child(3) {
+		display: none;
+	}
+}

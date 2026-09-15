@@ -1,77 +1,157 @@
 <!doctype html>
 <html lang="ru">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>ПРУФ · кабинет кандидата</title>
-<link rel="stylesheet" href="css/app.css">
+<meta name="description" content="Кабинет кандидата ПРУФ: свой протокол понимания, карта пробелов и повторное использование результата." />
+<link rel="stylesheet" href="/css/app.css" />
+<link rel="stylesheet" href="/css/cabinet.css" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232de0a5'/%3E%3Ctext x='16' y='22' font-family='monospace' font-size='16' font-weight='bold' text-anchor='middle' fill='%23052018'%3EP%3C/text%3E%3C/svg%3E" />
 </head>
 <body>
 
 <header class="nav">
-  <a class="brand" href="index.html"><span class="brand__slash">/</span> ПРУФ</a>
-  <nav class="nav__links">
-    <a href="index.html">Главная</a>
-    <a href="studio.html">Проверка кода</a>
-    <a href="session.html?demo=1">Сессия защиты</a>
-    <a href="employer.html">Кабинет работодателя</a>
-    <a href="candidate.html">Кабинет кандидата</a>
-  </nav>
-  <div class="nav__actions">
-    <span class="enginebar" data-engine-badge></span>
-    <a class="btn btn--sm" href="studio.html">Новая проверка</a>
-  </div>
+	<div class="container nav-inner">
+		<a class="logo" href="/index.html"><span class="logo-mark">P</span> ПРУФ</a>
+		<nav class="nav-links">
+			<a class="nav-link" href="/index.html">Главная</a>
+			<a class="nav-link" href="/studio.html">Проверка кода</a>
+			<a class="nav-link" href="/session.html?demo=1">Сессия защиты</a>
+			<a class="nav-link" href="/employer.html">Работодателю</a>
+			<a class="nav-link is-active" href="/candidate.html">Кандидату</a>
+			<a class="nav-link" href="/docs.html">Документация</a>
+		</nav>
+		<a class="btn btn-primary btn-sm" href="/studio.html">Проверить свой код</a>
+		<button class="nav-burger" type="button" aria-label="Меню">≡</button>
+	</div>
 </header>
 
-<main class="page">
+<main>
+<section class="section-sm">
+	<div class="container">
 
-  <section class="page__head reveal">
-    <h1>Мой протокол</h1>
-    <p class="section__lead">Протокол принадлежит вам: его можно показать любой компании и не проходить проверку заново. Ни камеры, ни записи экрана — только разбор вашего кода.</p>
-  </section>
+		<div class="row row-between">
+			<div>
+				<p class="eyebrow">Кабинет кандидата</p>
+				<h1 class="mb-0" style="font-size: 32px">Мой протокол понимания</h1>
+			</div>
+			<label class="field mb-0" style="min-width: 240px">
+				<span>Профиль</span>
+				<select class="select" id="whoSelect"></select>
+			</label>
+		</div>
+		<p class="small dim" style="max-width: 720px; margin-top: 10px">
+			Протокол принадлежит вам: его можно показать любой компании и не проходить проверку заново.
+			Ни камеры, ни записи экрана, ни биометрии — только разбор вашего кода.
+		</p>
 
-  <section class="card card--accent reveal" id="my-protocol" data-delay="60">
-    <p class="muted">Грузим протокол…</p>
-  </section>
+		<div class="stat-strip" id="kpi" style="margin-top: 22px"></div>
 
-  <section class="section reveal" data-delay="120">
-    <h2 class="section__title">История проверок</h2>
-    <div class="card" id="history"><p class="muted">Грузим историю…</p></div>
-  </section>
+		<div class="panel-grid" style="margin-top: 22px">
+			<div class="stack">
 
-  <section class="section reveal" data-delay="150">
-    <div class="grid grid--3">
-      <div class="card card--tilt">
-        <h4>Как готовиться</h4>
-        <p class="muted">Не нужно учить теорию. Нужно понимать своё решение: где границы, какие тесты что ловят и что произойдёт, если поменять строку.</p>
-      </div>
-      <div class="card card--tilt" data-delay="60">
-        <h4>Где тренироваться</h4>
-        <p class="muted">В студии проверки: напишите код и тесты, нажмите «Сломать» и посмотрите, какие правки ваши тесты не заметят.</p>
-        <a class="btn btn--sm btn--quiet" href="studio.html">Открыть студию</a>
-      </div>
-      <div class="card card--tilt" data-delay="120">
-        <h4>Если не согласны с вердиктом</h4>
-        <p class="muted">Протокол воспроизводим: те же мутации пересчитываются и дают тот же результат. Можно разобрать любой вопрос построчно.</p>
-      </div>
-    </div>
-  </section>
+				<div class="card" id="skillsCard">
+					<div class="card-head">
+						<h3 class="card-title mb-0">Протокол понимания</h3>
+						<span class="cab-sub" id="skillsMeta">—</span>
+					</div>
+					<div id="skills"><p class="cab-empty mb-0">Грузим протокол…</p></div>
+				</div>
 
+				<div class="card">
+					<div class="card-head">
+						<h3 class="card-title mb-0">Что подтянуть</h3>
+						<span class="cab-sub">план из пропущенных мутаций</span>
+					</div>
+					<div id="risks"><p class="cab-empty mb-0">—</p></div>
+				</div>
+
+				<div class="card">
+					<div class="card-head">
+						<h3 class="card-title mb-0">Хронология ответов</h3>
+						<span class="cab-sub" id="tlMeta">—</span>
+					</div>
+					<div class="cab-tl" id="timeline"></div>
+				</div>
+
+				<div class="card">
+					<div class="card-head">
+						<h3 class="card-title mb-0">История проверок</h3>
+						<span class="cab-sub">сессии в этом браузере и демо-профили</span>
+					</div>
+					<div id="history"><p class="cab-empty mb-0">—</p></div>
+				</div>
+
+			</div>
+
+			<div class="cab-detail stack">
+				<div class="card">
+					<div class="gauge" id="gauge">
+						<svg width="148" height="148" viewBox="0 0 148 148"><circle class="gauge-c gauge-bg" cx="74" cy="74" r="62"></circle><circle class="gauge-c gauge-fg" cx="74" cy="74" r="62"></circle></svg>
+						<div class="gauge-val"><div><b>0</b><span>контроль понимания</span></div></div>
+					</div>
+					<p class="center small mt-16 mb-0" id="verdict">—</p>
+					<p class="center tiny dim mt-8 mb-0" id="threshold">—</p>
+				</div>
+
+				<div class="card card-pad-sm">
+					<h4 class="card-title mb-16">Данные проверки</h4>
+					<dl class="cab-kv" id="meta"></dl>
+				</div>
+
+				<div class="card card-pad-sm">
+					<h4 class="card-title mb-16">Цитата из мутации</h4>
+					<div class="cab-quote" id="quote">—</div>
+				</div>
+
+				<div class="card card-pad-sm">
+					<h4 class="card-title mb-16">Действия</h4>
+					<div class="cab-actions">
+						<button class="btn btn-teal btn-sm" type="button" id="btnPdf">Скачать PDF</button>
+						<button class="btn btn-primary btn-sm" type="button" data-modal-open="modal-send">Отправить работодателю</button>
+						<button class="btn btn-quiet btn-sm" type="button" id="btnShare">Скопировать ссылку</button>
+						<a class="btn btn-ghost btn-sm" href="/studio.html">Пройти новую проверку</a>
+					</div>
+				</div>
+
+				<div class="card card-pad-sm">
+					<h4 class="card-title mb-8">Что видит работодатель</h4>
+					<p class="tiny dim mb-8">Только то, что ниже: процент контроля, разбор по навыкам и цитаты мутаций.</p>
+					<p class="tiny dim mb-0">Не видит: записей экрана, камеры, геолокации, переключений вкладок — их просто нет.</p>
+				</div>
+			</div>
+		</div>
+
+	</div>
+</section>
 </main>
 
 <footer class="footer">
-  <div>
-    <p class="brand"><span class="brand__slash">/</span> ПРУФ</p>
-    <p class="muted">Одна проверка бесплатно. Данные — имя и решение, без биометрии.</p>
-  </div>
-  <div class="footer__links">
-    <a href="studio.html">Проверка кода</a>
-    <a href="session.html?demo=1">Сессия защиты</a>
-    <a href="index.html#faq">Вопросы</a>
-  </div>
+	<div class="container row row-between">
+		<span class="small dim">ПРУФ · протокол остаётся у кандидата и переиспользуется в других компаниях</span>
+		<a class="small" href="/docs.html#protocol">Как считается протокол</a>
+	</div>
 </footer>
 
-<script src="js/app.js"></script>
-<script src="js/candidate.js"></script>
+<div class="modal" id="modal-send">
+	<div class="modal-bg" data-modal-close></div>
+	<div class="modal-card">
+		<button class="modal-close" type="button" data-modal-close aria-label="Закрыть">×</button>
+		<p class="eyebrow">Отправка протокола</p>
+		<h3 class="card-title">Кому отправить</h3>
+		<label class="field"><span>E-mail работодателя</span><input class="input" id="sendEmail" type="email" placeholder="hr@company.ru" /></label>
+		<div class="cab-actions">
+			<button class="btn btn-primary btn-sm" type="button" id="btnSend">Поставить в очередь</button>
+			<button class="btn btn-quiet btn-sm" type="button" data-modal-close>Отмена</button>
+		</div>
+		<p class="tiny dim" style="margin-top: 12px">В прототипе почта не уходит: запись сохраняется в <span class="mono">data/outbox</span>.</p>
+	</div>
+</div>
+
+<div class="toast-wrap"></div>
+
+<script src="/js/app.js"></script>
+<script src="/js/candidate.js"></script>
 </body>
 </html>
